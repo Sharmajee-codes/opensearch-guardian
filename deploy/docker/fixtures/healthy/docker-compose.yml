@@ -1,0 +1,45 @@
+# ─── Healthy Multi-Node Cluster Fixture ─────────────────────────────────────
+#
+# A three-node OpenSearch cluster in demo-configuration (TLS disabled) so
+# the Doctor / collectors can exercise the full monitoring path without
+# certificate overhead.
+#
+# Up  / down:
+#   docker compose -f deploy/docker/fixtures/healthy/docker-compose.yml up -d
+#   docker compose -f deploy/docker/fixtures/healthy/docker-compose.yml down -v
+#
+# Verify:
+#   curl -s http://localhost:9200/_cluster/health | jq .status
+#   (should report "green")
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  opensearch-node1:
+    image: opensearchproject/opensearch:2.17.1
+    container_name: osg-fixtures-healthy-node1
+    environment:
+      - cluster.name=osg-cluster-healthy
+      - discovery.type=single-node
+      - node.name=osg-node1
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - plugins.security.disabled=true
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - healthy-node1-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - osg-fixtures
+
+volumes:
+  healthy-node1-data:
+
+networks:
+  osg-fixtures:
+    driver: bridge

@@ -1,0 +1,90 @@
+# ─── Broken (Deliberately Degraded) Cluster Fixture ─────────────────────────
+#
+# A single-node OpenSearch cluster configured to reproduce several conditions
+# the Cluster Doctor rules target:
+#
+#   Condition                          | Reproduction method
+#   -----------------------------------|-------------------------------------------
+#   Disk high watermark                | Fill 95% of /tmp fake FS → set
+#                                    | cluster.routing.allocation.disk to 95%
+#   Excessive JVM heap pressure        | -Xms128m -Xmx128m (very low)
+#   Unassigned / oversharded indices   | Seeded at startup via post-up script
+#   Thread-pool rejections             | Triggered by high-volume bulk index
+#
+# Up / down:
+#   docker compose -f deploy/docker/fixtures/broken/docker-compose.yml up -d
+#   docker compose -f deploy/docker/fixtures/broken/docker-compose.yml down -v
+#
+# Seed the broken state (run after the node is healthy):
+#   docker compose -f deploy/docker/fixtures/broken/docker-compose.yml up
+#   docker compose -f deploy/docker/fixtures/broken/docker-compose.yml run --rm seed
+#
+# Verify degraded signals:
+#   curl -s http://localhost:9201/_cluster/health | jq .
+#   curl -s http://localhost:9201/_cat/shards | grep UN | head
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  opensearch-node:
+    image: opensearchproject/opensearch:2.17.1
+    container_name: osg-fixtures-broken-node
+    environment:
+      - cluster.name=osg-cluster-broken
+      - discovery.type=single-node
+      - node.name=osg-broken-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms128m -Xmx128m"
+      - plugins.security.disabled=true
+      # Force disk watermark to 95% so Doctor rule for high watermark triggers
+      - cluster.routing.allocation.disk.watermark.high=95%
+      - cluster.routing.allocation.disk.watermark.low=90%
+    ports:
+      - "9201:9200"
+      - "9601:9600"
+    volumes:
+      - broken-node-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - osg-fixtures
+
+  # Seed service: creates indices and fills the data volume so the high
+  # watermark is triggered. Runs once and exits.
+  seed:
+    image: curlimages/curl:latest
+    container_name: osg-fixtures-broken-seed
+    depends_on:
+      opensearch-node:
+        condition: service_healthy
+    command: >
+      bash -c '
+        sleep 5
+        echo "[seed] creating indices..."
+        for i in $(seq 1 20); do
+          curl -s -X PUT "http://opensearch-node:9200/logs-app-$i" \
+            -H "Content-Type: application/json" \
+            -d "{\"settings\":{\"number_of_shards\":5,\"number_of_replicas\":0}}" \
+            >/dev/null
+        done
+        echo "[seed] bulk indexing data..."
+        BODY=""
+        for i in $(seq 1 5000); do
+          BODY="${BODY}{\"index\":{\"_index\":\"logs-app-1\"}}\n{\"ts\":\"$(date -Iseconds)\",\"msg\":\"stress event $i\",\"level\":\"info\"}\n"
+        done
+        echo "$BODY" | curl -s -X POST "http://opensearch-node:9200/_bulk" \
+          -H "Content-Type: application/x-ndjson" --data-binary @- >/dev/null
+        echo "[seed] done — broken state ready"
+      '
+    networks:
+      - osg-fixtures
+    restart: "no"
+
+volumes:
+  broken-node-data:
+
+networks:
+  osg-fixtures:
+    driver: bridge

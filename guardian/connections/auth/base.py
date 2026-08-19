@@ -1,0 +1,1 @@
+"""AuthAdapter protocol and shared helpers."""
