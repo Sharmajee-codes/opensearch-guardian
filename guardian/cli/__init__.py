@@ -24,7 +24,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from guardian.connections import ConnectionManager
+from guardian.connections.manager import ConnectionManager
 from guardian.core_types.connection_models import (
     AuthMethod,
     ConnectionStatus,
@@ -134,7 +134,7 @@ def connection_test(
     if res and res.passed:
         console.print(f"[green]✓ Connection test PASSED[/green] (cluster: {res.identity.cluster_name}, version: {res.identity.version})")
     else:
-        console.print(f"[red]✗ Connection test FAILED[/red]")
+        console.print("[red]✗ Connection test FAILED[/red]")
         if res:
             if res.fatal_errors:
                 console.print("Fatal errors:")

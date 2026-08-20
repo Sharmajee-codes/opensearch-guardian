@@ -14,10 +14,9 @@ from __future__ import annotations
 import ssl
 import tempfile
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from guardian.connections.auth.base import AuthAdapterProtocol
-from guardian.connections.exceptions import TLSError
 
 if TYPE_CHECKING:
     from guardian.core_types.connection_models import ConnectionProfile
@@ -32,7 +31,7 @@ class ClientCertAuthAdapter(AuthAdapterProtocol):
         self._tmp_cert: Path | None = None
         self._tmp_key: Path | None = None
 
-    def resolve_credentials(self, profile: "ConnectionProfile") -> dict[str, Any]:
+    def resolve_credentials(self, profile: ConnectionProfile) -> dict[str, Any]:
         from guardian.connections.keychain import KeychainStore
 
         store = KeychainStore()

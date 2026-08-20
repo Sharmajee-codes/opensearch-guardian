@@ -1,0 +1,251 @@
+- generic [active] [ref=f1e1]:
+  - banner [ref=f1e2]:
+    - generic [ref=f1e3]:
+      - heading "PMO Status Dashboard" [level=1] [ref=f1e4]
+      - generic [ref=f1e5]:
+        - generic [ref=f1e6]: Live - Implementation Phase Active
+        - generic [ref=f1e8]:
+          - text: "Project:"
+          - strong [ref=f1e9]: OpenSearch Guardian
+        - generic [ref=f1e10]:
+          - text: "Generated:"
+          - strong [ref=f1e11]: 20/08/2026, 00:31:30
+  - generic [ref=f1e12]:
+    - textbox "Search tasks" [ref=f1e14]:
+      - /placeholder: Search tasks by ID, title, assignee...
+    - generic [ref=f1e15]:
+      - generic [ref=f1e16]: Status
+      - combobox "Status" [ref=f1e17] [cursor=pointer]: "0"
+    - generic [ref=f1e18]:
+      - generic [ref=f1e19]: Assignee
+      - combobox "Assignee" [ref=f1e20] [cursor=pointer]:
+        - option "All Assignees" [selected]
+        - option "Andy"
+        - option "Angela"
+        - option "Dwight"
+        - option "Jim"
+        - option "Kelly (PMO)"
+        - option "Kevin"
+        - option "Meredith"
+        - option "Pam"
+        - option "Stanley"
+    - generic [ref=f1e21]:
+      - generic [ref=f1e22]: Workstream
+      - combobox "Workstream" [ref=f1e23] [cursor=pointer]:
+        - option "All Workstreams" [selected]
+        - option "Backend Plugin"
+        - option "Documentation"
+        - option "Frontend Plugin"
+        - option "PMO"
+        - option "Provisioning"
+        - option "Release"
+        - option "Security"
+        - option "Shared Logic"
+        - option "Testing"
+        - option "UI/Visualization"
+    - button "Clear Filters" [ref=f1e24] [cursor=pointer]
+  - main [ref=f1e25]:
+    - generic [ref=f1e26]:
+      - generic [ref=f1e32]:
+        - generic [ref=f1e33]: "17"
+        - generic [ref=f1e34]: Total Tasks
+      - generic [ref=f1e40]:
+        - generic [ref=f1e41]: "17"
+        - generic [ref=f1e42]: In Progress
+      - generic [ref=f1e47]:
+        - generic [ref=f1e48]: "0"
+        - generic [ref=f1e49]: Done
+      - generic [ref=f1e56]:
+        - generic [ref=f1e57]: "0"
+        - generic [ref=f1e58]: Blocked
+    - generic [ref=f1e59]:
+      - generic [ref=f1e60]:
+        - generic [ref=f1e61]:
+          - generic [ref=f1e62]: Not Started
+          - generic [ref=f1e65]: "0"
+        - generic [ref=f1e66]: No tasks
+      - generic [ref=f1e68]:
+        - generic [ref=f1e69]:
+          - generic [ref=f1e70]: In Progress
+          - generic [ref=f1e73]: "17"
+        - generic [ref=f1e74]:
+          - generic [ref=f1e75]: No tasks
+          - generic [ref=f1e76] [cursor=pointer]:
+            - generic [ref=f1e77]:
+              - generic [ref=f1e78]: T58
+              - generic [ref=f1e79]: IN PROGRESS
+            - generic [ref=f1e80]: "PMO: Weekly Status Report Consolidation"
+            - generic [ref=f1e81]:
+              - generic [ref=f1e82]: Kelly (PMO)
+              - generic [ref=f1e83]: god
+              - generic [ref=f1e84]: 📊 PMO
+          - generic [ref=f1e85] [cursor=pointer]:
+            - generic [ref=f1e86]:
+              - generic [ref=f1e87]: T59
+              - generic [ref=f1e88]: IN PROGRESS
+            - generic [ref=f1e89]: Backend Plugin SPI Implementation
+            - generic [ref=f1e90]:
+              - generic [ref=f1e91]: Kevin
+              - generic [ref=f1e92]: Phyllis
+              - generic [ref=f1e93]: ↳ T52
+              - generic [ref=f1e94]: ⚙️ Backend Plugin
+          - generic [ref=f1e95] [cursor=pointer]:
+            - generic [ref=f1e96]:
+              - generic [ref=f1e97]: T60
+              - generic [ref=f1e98]: IN PROGRESS
+            - generic [ref=f1e99]: Backend Plugin Collection Services
+            - generic [ref=f1e100]:
+              - generic [ref=f1e101]: Kevin
+              - generic [ref=f1e102]: Phyllis
+              - generic [ref=f1e103]: ↳ T59
+              - generic [ref=f1e104]: ⚙️ Backend Plugin
+          - generic [ref=f1e105] [cursor=pointer]:
+            - generic [ref=f1e106]:
+              - generic [ref=f1e107]: T61
+              - generic [ref=f1e108]: IN PROGRESS
+            - generic [ref=f1e109]: Security Plugin Integration
+            - generic [ref=f1e110]:
+              - generic [ref=f1e111]: Angela
+              - generic [ref=f1e112]: Phyllis
+              - generic [ref=f1e113]: ↳ T52
+              - generic [ref=f1e114]: 🔒 Security
+          - generic [ref=f1e115] [cursor=pointer]:
+            - generic [ref=f1e116]:
+              - generic [ref=f1e117]: T62
+              - generic [ref=f1e118]: IN PROGRESS
+            - generic [ref=f1e119]: RBAC Mapping and Permission Enforcement
+            - generic [ref=f1e120]:
+              - generic [ref=f1e121]: Angela
+              - generic [ref=f1e122]: Phyllis
+              - generic [ref=f1e123]: ↳ T61
+              - generic [ref=f1e124]: 🔒 Security
+          - generic [ref=f1e125] [cursor=pointer]:
+            - generic [ref=f1e126]:
+              - generic [ref=f1e127]: T63
+              - generic [ref=f1e128]: IN PROGRESS
+            - generic [ref=f1e129]: Plugin Development Guides
+            - generic [ref=f1e130]:
+              - generic [ref=f1e131]: Pam
+              - generic [ref=f1e132]: Phyllis
+              - generic [ref=f1e133]: ↳ T52
+              - generic [ref=f1e134]: 📚 Documentation
+          - generic [ref=f1e135] [cursor=pointer]:
+            - generic [ref=f1e136]:
+              - generic [ref=f1e137]: T64
+              - generic [ref=f1e138]: IN PROGRESS
+            - generic [ref=f1e139]: Release Automation and Signing
+            - generic [ref=f1e140]:
+              - generic [ref=f1e141]: Pam
+              - generic [ref=f1e142]: Phyllis
+              - generic [ref=f1e143]: ↳ T63
+              - generic [ref=f1e144]: 🚀 Release
+          - generic [ref=f1e145] [cursor=pointer]:
+            - generic [ref=f1e146]:
+              - generic [ref=f1e147]: T65
+              - generic [ref=f1e148]: IN PROGRESS
+            - generic [ref=f1e149]: Provisioning Engine Plugin Adaptation
+            - generic [ref=f1e150]:
+              - generic [ref=f1e151]: Dwight
+              - generic [ref=f1e152]: Phyllis
+              - generic [ref=f1e153]: ↳ T52
+              - generic [ref=f1e154]: 🐳 Provisioning
+          - generic [ref=f1e155] [cursor=pointer]:
+            - generic [ref=f1e156]:
+              - generic [ref=f1e157]: T66
+              - generic [ref=f1e158]: IN PROGRESS
+            - generic [ref=f1e159]: Doctor Rules Plugin Integration
+            - generic [ref=f1e160]:
+              - generic [ref=f1e161]: Dwight
+              - generic [ref=f1e162]: Phyllis
+              - generic [ref=f1e163]: ↳ T65
+              - generic [ref=f1e164]: 🐳 Provisioning
+          - generic [ref=f1e165] [cursor=pointer]:
+            - generic [ref=f1e166]:
+              - generic [ref=f1e167]: T67
+              - generic [ref=f1e168]: IN PROGRESS
+            - generic [ref=f1e169]: Frontend Plugin Scaffold and Manifest
+            - generic [ref=f1e170]:
+              - generic [ref=f1e171]: Meredith
+              - generic [ref=f1e172]: Phyllis
+              - generic [ref=f1e173]: ↳ T52
+              - generic [ref=f1e174]: 🖥️ Frontend Plugin
+          - generic [ref=f1e175] [cursor=pointer]:
+            - generic [ref=f1e176]:
+              - generic [ref=f1e177]: T68
+              - generic [ref=f1e178]: IN PROGRESS
+            - generic [ref=f1e179]: Frontend-Backend Communication
+            - generic [ref=f1e180]:
+              - generic [ref=f1e181]: Meredith
+              - generic [ref=f1e182]: Phyllis
+              - generic [ref=f1e183]: ↳ T67, T59
+              - generic [ref=f1e184]: 🖥️ Frontend Plugin
+          - generic [ref=f1e185] [cursor=pointer]:
+            - generic [ref=f1e186]:
+              - generic [ref=f1e187]: T69
+              - generic [ref=f1e188]: IN PROGRESS
+            - generic [ref=f1e189]: Backend Plugin Unit Test Strategy
+            - generic [ref=f1e190]:
+              - generic [ref=f1e191]: Jim
+              - generic [ref=f1e192]: Phyllis
+              - generic [ref=f1e193]: ↳ T59
+              - generic [ref=f1e194]: 🧪 Testing
+          - generic [ref=f1e195] [cursor=pointer]:
+            - generic [ref=f1e196]:
+              - generic [ref=f1e197]: T70
+              - generic [ref=f1e198]: IN PROGRESS
+            - generic [ref=f1e199]: Frontend Plugin Integration Tests
+            - generic [ref=f1e200]:
+              - generic [ref=f1e201]: Jim
+              - generic [ref=f1e202]: Phyllis
+              - generic [ref=f1e203]: ↳ T67
+              - generic [ref=f1e204]: 🧪 Testing
+          - generic [ref=f1e205] [cursor=pointer]:
+            - generic [ref=f1e206]:
+              - generic [ref=f1e207]: T71
+              - generic [ref=f1e208]: IN PROGRESS
+            - generic [ref=f1e209]: Optimizer and Capacity Logic Validation
+            - generic [ref=f1e210]:
+              - generic [ref=f1e211]: Stanley
+              - generic [ref=f1e212]: Phyllis
+              - generic [ref=f1e213]: ↳ T52
+              - generic [ref=f1e214]: 🔬 Shared Logic
+          - generic [ref=f1e215] [cursor=pointer]:
+            - generic [ref=f1e216]:
+              - generic [ref=f1e217]: T72
+              - generic [ref=f1e218]: IN PROGRESS
+            - generic [ref=f1e219]: Safety Classification Validation
+            - generic [ref=f1e220]:
+              - generic [ref=f1e221]: Stanley
+              - generic [ref=f1e222]: Phyllis
+              - generic [ref=f1e223]: ↳ T71
+              - generic [ref=f1e224]: 🔬 Shared Logic
+          - generic [ref=f1e225] [cursor=pointer]:
+            - generic [ref=f1e226]:
+              - generic [ref=f1e227]: T73
+              - generic [ref=f1e228]: IN PROGRESS
+            - generic [ref=f1e229]: UI Component Implementation
+            - generic [ref=f1e230]:
+              - generic [ref=f1e231]: Andy
+              - generic [ref=f1e232]: Phyllis
+              - generic [ref=f1e233]: ↳ T67
+              - generic [ref=f1e234]: 📈 UI/Visualization
+          - generic [ref=f1e235] [cursor=pointer]:
+            - generic [ref=f1e236]:
+              - generic [ref=f1e237]: T74
+              - generic [ref=f1e238]: IN PROGRESS
+            - generic [ref=f1e239]: Visualization Integration
+            - generic [ref=f1e240]:
+              - generic [ref=f1e241]: Andy
+              - generic [ref=f1e242]: Phyllis
+              - generic [ref=f1e243]: ↳ T73
+              - generic [ref=f1e244]: 📈 UI/Visualization
+      - generic [ref=f1e245]:
+        - generic [ref=f1e246]:
+          - generic [ref=f1e247]: In Review
+          - generic [ref=f1e251]: "0"
+        - generic [ref=f1e252]: No tasks
+      - generic [ref=f1e254]:
+        - generic [ref=f1e255]:
+          - generic [ref=f1e256]: Done
+          - generic [ref=f1e259]: "0"
+        - generic [ref=f1e260]: No tasks

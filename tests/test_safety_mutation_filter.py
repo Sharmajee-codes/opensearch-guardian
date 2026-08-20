@@ -139,8 +139,8 @@ class TestMutationFilter:
         assert filter_engine.is_operation_allowlisted("cluster-health") is True
         assert filter_engine.is_operation_allowlisted("unknown-op") is False
 
-    def test_denied_mutation_has_violations(self, filter_engine):
-        """Test that denied mutations include violations."""
+    def test_dry_run_required_operation_has_no_violations(self, filter_engine):
+        """Test that dry-run required operations return REQUIRE_DRY_RUN without violations."""
         request = MutationRequest(
             operation_type="index-delete",
             target_resource="test-index",
@@ -156,8 +156,10 @@ class TestMutationFilter:
             )
         )
         result = filter_engine.filter_mutation(request)
-        assert result.decision == MutationDecision.DENY
-        assert len(result.violations) > 0
+        assert result.decision == MutationDecision.REQUIRE_DRY_RUN
+        assert result.allowed is False
+        assert result.requires_dry_run is True
+        assert result.violations == []
 
     def test_write_disabled_rejects_write_operations(self, filter_engine):
         """Test that write operations are rejected when write is disabled."""

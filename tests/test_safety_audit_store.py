@@ -215,9 +215,10 @@ class TestAuditStore:
     def test_persistence_across_instances(self, tmp_path):
         """Test that entries persist across AuditStore instances."""
         store_path = tmp_path / "persistent-audit"
+        test_key = "test-signing-key-for-persistence"
 
         # Create first instance and log entries
-        store1 = AuditStore(storage_path=str(store_path))
+        store1 = AuditStore(storage_path=str(store_path), signing_key=test_key)
         store1.log_mutation(
             operation="node-add",
             classification="safe_reversible",
@@ -228,7 +229,7 @@ class TestAuditStore:
         )
 
         # Create second instance from same path
-        store2 = AuditStore(storage_path=str(store_path))
+        store2 = AuditStore(storage_path=str(store_path), signing_key=test_key)
         entries = store2.get_entries()
         assert len(entries) == 1
         assert entries[0].operation == "node-add"

@@ -17,8 +17,8 @@ import logging
 from collections.abc import Callable
 from typing import TypeVar
 
-from guardian.core_types.exceptions import KeychainError
 from guardian.core_types.connection_models import ClientCertCredentials
+from guardian.core_types.exceptions import KeychainError
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
@@ -54,7 +54,7 @@ class KeychainProxy:
                 # We've already failed to import — don't keep trying.
                 raise KeychainError(self._load_error)
             try:
-                import keyring  # noqa: F401 — just validates availability
+                import keyring
 
                 self._keyring = keyring
             except ImportError as exc:
@@ -164,13 +164,12 @@ class KeychainStore:
         from guardian.core_types.connection_models import BasicCredentials
 
         creds = BasicCredentials(username=username, password=password)
-        import json
 
         self._proxy.set(account, creds.model_dump_json())
 
     def load_basic(self, account: str) -> BasicCredentials:
+
         from guardian.core_types.connection_models import BasicCredentials
-        import json
 
         raw = self._proxy.get(account)
         if raw is None:
@@ -192,8 +191,9 @@ class KeychainStore:
         self._proxy.set(account, encoded)
 
     def load_client_cert(self, account: str) -> ClientCertCredentials:
-        from guardian.core_types.connection_models import ClientCertCredentials
         import base64
+
+        from guardian.core_types.connection_models import ClientCertCredentials
 
         raw = self._proxy.get(account)
         if raw is None:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any
 
 from ..models import CollectionResult
@@ -83,7 +83,7 @@ class DiagnosisEngine:
             DiagnosisResult with all findings produced by the rule set.
         """
         all_findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         for rule in self._rules:
             try:
                 findings = rule.evaluate(snapshot, self.config)

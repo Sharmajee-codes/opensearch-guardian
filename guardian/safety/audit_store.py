@@ -6,11 +6,11 @@ for every mutation operation.
 
 import hashlib
 import json
-from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import uuid
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -22,15 +22,22 @@ class AuditEntry:
     classification: str
     before_hash: str
     after_hash: str
-    performed_by: Optional[str]
-    details: Dict[str, Any]
+    performed_by: str | None
+    details: dict[str, Any]
     signature: str  # HMAC signature for verification
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary."""
+        # Ensure timestamp is in UTC and format as ISO with Z suffix
+        if self.timestamp.tzinfo is None:
+            timestamp_str = self.timestamp.replace(tzinfo=UTC).isoformat().replace("+00:00", "Z")
+        else:
+            timestamp_str = self.timestamp.isoformat()
+            if timestamp_str.endswith("+00:00"):
+                timestamp_str = timestamp_str.replace("+00:00", "Z")
         return {
             "uuid": self.uuid,
-            "timestamp": self.timestamp.isoformat() + "Z",
+            "timestamp": timestamp_str,
             "operation": self.operation,
             "classification": self.classification,
             "before_hash": self.before_hash,
@@ -41,11 +48,14 @@ class AuditEntry:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'AuditEntry':
+    def from_dict(cls, data: dict[str, Any]) -> 'AuditEntry':
         """Deserialize from dictionary."""
+        timestamp_str = data["timestamp"]
+        if timestamp_str.endswith("Z"):
+            timestamp_str = timestamp_str.replace("Z", "+00:00")
         return cls(
             uuid=data["uuid"],
-            timestamp=datetime.fromisoformat(data["timestamp"].replace("Z", "+00:00")),
+            timestamp=datetime.fromisoformat(timestamp_str),
             operation=data["operation"],
             classification=data["classification"],
             before_hash=data["before_hash"],
@@ -77,7 +87,7 @@ class AuditStore:
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
         self.signing_key = signing_key or str(uuid.uuid4())
-        self._entries: List[AuditEntry] = []
+        self._entries: list[AuditEntry] = []
         self._load_existing_entries()
 
     def _load_existing_entries(self):
@@ -94,7 +104,7 @@ class AuditStore:
                             # Verify signature before loading
                             if self._verify_signature(entry):
                                 self._entries.append(entry)
-            except (json.JSONDecodeError, Exception) as e:
+            except (json.JSONDecodeError, Exception):
                 # Log error but continue without loaded entries
                 pass
 
@@ -102,8 +112,7 @@ class AuditStore:
         """Save audit entries to disk."""
         log_file = self.storage_path / "audit.log"
         with open(log_file, "w") as f:
-            for entry in self._entries:
-                f.write(json.dumps(entry.to_dict()) + "\n")
+            f.writelines(json.dumps(entry.to_dict()) + "\n" for entry in self._entries)
 
     def _compute_hash(self, state: Any) -> str:
         """Compute SHA-256 hash of state."""
@@ -132,7 +141,7 @@ class AuditStore:
         before_state: Any,
         after_state: Any,
         performed_by: str,
-        details: Dict[str, Any]
+        details: dict[str, Any]
     ) -> AuditEntry:
         """
         Log a mutation operation to the audit trail.
@@ -150,7 +159,7 @@ class AuditStore:
         """
         entry = AuditEntry(
             uuid=str(uuid.uuid4()),
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             operation=operation,
             classification=classification,
             before_hash=self._compute_hash(before_state),
@@ -173,10 +182,10 @@ class AuditStore:
 
     def get_entries(
         self,
-        operation: Optional[str] = None,
-        performed_by: Optional[str] = None,
+        operation: str | None = None,
+        performed_by: str | None = None,
         limit: int = 100
-    ) -> List[AuditEntry]:
+    ) -> list[AuditEntry]:
         """
         Retrieve audit entries with optional filtering.
 
@@ -199,7 +208,7 @@ class AuditStore:
         # Return most recent entries first
         return list(reversed(entries[-limit:]))
 
-    def get_entry(self, entry_uuid: str) -> Optional[AuditEntry]:
+    def get_entry(self, entry_uuid: str) -> AuditEntry | None:
         """Retrieve a specific audit entry by UUID."""
         for entry in self._entries:
             if entry.uuid == entry_uuid:
@@ -221,6 +230,6 @@ class AuditStore:
         """Get total number of audit entries."""
         return len(self._entries)
 
-    def get_last_n_entries(self, n: int) -> List[AuditEntry]:
+    def get_last_n_entries(self, n: int) -> list[AuditEntry]:
         """Get the last N audit entries."""
         return list(reversed(self._entries[-n:]))

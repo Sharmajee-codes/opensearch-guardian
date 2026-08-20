@@ -4,9 +4,9 @@ Implements the 4-tier safety classification: Informational, Safe-Reversible,
 Approval-Required, Destructive.
 """
 
-from enum import Enum
 from dataclasses import dataclass
-from typing import Dict, Any, List
+from enum import Enum
+from typing import Any
 
 
 class SafetyClassification(Enum):
@@ -23,8 +23,8 @@ class OperationContext:
     operation_type: str
     target_resource: str
     resource_type: str
-    parameters: Dict[str, Any]
-    connection_permissions: List[str]  # e.g., ["monitoring", "full"]
+    parameters: dict[str, Any]
+    connection_permissions: list[str]  # e.g., ["monitoring", "full"]
     is_write_enabled: bool = False
 
 
@@ -35,10 +35,6 @@ def classify_operation(context: OperationContext) -> SafetyClassification:
     Returns the appropriate safety tier based on operation type,
     target resource, and connection state.
     """
-    # Read-only operations are always informational
-    if not context.is_write_enabled and context.connection_permissions == ["monitoring"]:
-        return SafetyClassification.INFORMATIONAL
-
     # Destructive operations that are never allowed autonomously in V1
     destructive_ops = {
         "index-delete", "node-delete", "pvc-delete", "snapshot-delete",
@@ -64,6 +60,7 @@ def classify_operation(context: OperationContext) -> SafetyClassification:
     # Provisioning operations (Docker/K8s)
     provisioning_ops = {
         "docker-compose-up", "docker-compose-down", "k8s-scale",
+        "k8s-scale-up", "k8s-scale-down",
         "helm-upgrade", "helm-install"
     }
 
@@ -71,6 +68,10 @@ def classify_operation(context: OperationContext) -> SafetyClassification:
         if not context.is_write_enabled or "full" not in context.connection_permissions:
             return SafetyClassification.APPROVAL_REQUIRED
         return SafetyClassification.SAFE_REVERSIBLE
+
+    # Read-only operations with only monitoring permissions
+    if not context.is_write_enabled and context.connection_permissions == ["monitoring"]:
+        return SafetyClassification.INFORMATIONAL
 
     # Default to safe reversible for unknown write operations
     if context.is_write_enabled:

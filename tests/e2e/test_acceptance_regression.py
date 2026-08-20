@@ -167,7 +167,7 @@ class TestAcceptanceCriteria:
         assert classify_operation(ctx) == SafetyClassification.APPROVAL_REQUIRED
         
         # With write access, should be safe-reversible (not auto-approved)
-        ctx.write_enabled = True
+        ctx.is_write_enabled = True
         ctx.connection_permissions = ["monitoring", "full"]
         assert classify_operation(ctx) == SafetyClassification.SAFE_REVERSIBLE
 

@@ -1,0 +1,181 @@
+- generic [active] [ref=f20e1]:
+  - banner [ref=f20e2]:
+    - generic [ref=f20e3]:
+      - heading "PMO Status Dashboard" [level=1] [ref=f20e4]
+      - generic [ref=f20e5]:
+        - generic [ref=f20e6]: Live - Implementation Phase Active
+        - generic [ref=f20e8]:
+          - text: "Project:"
+          - strong [ref=f20e9]: OpenSearch Guardian
+        - generic [ref=f20e10]:
+          - text: "Generated:"
+          - strong
+  - generic [ref=f20e11]:
+    - textbox "Search tasks" [ref=f20e13]:
+      - /placeholder: Search tasks by ID, title, assignee...
+    - generic [ref=f20e14]:
+      - generic [ref=f20e15]: Status
+      - combobox "Status" [ref=f20e16] [cursor=pointer]:
+        - option "All Statuses" [selected]
+        - option "Not Started"
+        - option "In Progress"
+        - option "In Review"
+        - option "Done"
+        - option "Blocked"
+    - generic [ref=f20e17]:
+      - generic [ref=f20e18]: Assignee
+      - combobox "Assignee" [ref=f20e19] [cursor=pointer]:
+        - option "All Assignees" [selected]
+    - generic [ref=f20e20]:
+      - generic [ref=f20e21]: Workstream
+      - combobox "Workstream" [ref=f20e22] [cursor=pointer]:
+        - option "All Workstreams" [selected]
+    - button "Clear Filters" [ref=f20e23] [cursor=pointer]
+  - main [ref=f20e24]:
+    - generic [ref=f20e25]:
+      - generic [ref=f20e31]:
+        - generic [ref=f20e32]: "0"
+        - generic [ref=f20e33]: Total Tasks
+      - generic [ref=f20e39]:
+        - generic [ref=f20e40]: "0"
+        - generic [ref=f20e41]: In Progress
+      - generic [ref=f20e46]:
+        - generic [ref=f20e47]: "0"
+        - generic [ref=f20e48]: Done
+      - generic [ref=f20e55]:
+        - generic [ref=f20e56]: "0"
+        - generic [ref=f20e57]: Blocked
+    - generic [ref=f20e58]:
+      - generic [ref=f20e59]:
+        - generic [ref=f20e60]: 📚 Documentation Index
+        - text: All project documentation organized by category
+      - generic [ref=f20e61]:
+        - generic [ref=f20e62]:
+          - heading "🏛️ Architecture & ADRs" [level=4] [ref=f20e63]
+          - list [ref=f20e64]:
+            - listitem [ref=f20e65]:
+              - 'link "ADR-001: Project Structure" [ref=f20e66] [cursor=pointer]':
+                - /url: ../adr/ADR-001.html
+            - listitem [ref=f20e67]:
+              - 'link "ADR-002: Technology Stack" [ref=f20e68] [cursor=pointer]':
+                - /url: ../adr/ADR-002.html
+            - listitem [ref=f20e69]:
+              - 'link "ADR-008: Architecture Migration" [ref=f20e70] [cursor=pointer]':
+                - /url: ../adr/ADR-008.html
+            - listitem [ref=f20e71]:
+              - 'link "ADR-009: Plugin Architecture" [ref=f20e72] [cursor=pointer]':
+                - /url: ../adr/ADR-009.html
+            - listitem [ref=f20e73]:
+              - 'link "ADR-011: Release & Distribution" [ref=f20e74] [cursor=pointer]':
+                - /url: ../adr/ADR-011.html
+            - listitem [ref=f20e75]:
+              - link "Desktop Architecture" [ref=f20e76] [cursor=pointer]:
+                - /url: ../architecture/desktop-architecture.html
+            - listitem [ref=f20e77]:
+              - link "Data Model" [ref=f20e78] [cursor=pointer]:
+                - /url: ../architecture/data-model.html
+            - listitem [ref=f20e79]:
+              - link "Doctor Rules Engine" [ref=f20e80] [cursor=pointer]:
+                - /url: ../architecture/doctor-rules.html
+            - listitem [ref=f20e81]:
+              - link "Security & Safety Engine" [ref=f20e82] [cursor=pointer]:
+                - /url: ../architecture/security-safety-engine.html
+            - listitem [ref=f20e83]:
+              - link "Migration Report" [ref=f20e84] [cursor=pointer]:
+                - /url: ../architecture/migration-report.html
+        - generic [ref=f20e85]:
+          - heading "⚙️ Implementation Guides" [level=4] [ref=f20e86]
+          - list [ref=f20e87]:
+            - listitem [ref=f20e88]:
+              - link "Backend Plugin Development Guide" [ref=f20e89] [cursor=pointer]:
+                - /url: ../plugins/backend-plugin-development.html
+            - listitem [ref=f20e90]:
+              - link "Frontend Plugin Research" [ref=f20e91] [cursor=pointer]:
+                - /url: ../research/opensearch-dashboards-plugin.html
+            - listitem [ref=f20e92]:
+              - link "OpenSearch Backend Plugin" [ref=f20e93] [cursor=pointer]:
+                - /url: ../research/opensearch-backend-plugin.html
+            - listitem [ref=f20e94]:
+              - link "Security Integration" [ref=f20e95] [cursor=pointer]:
+                - /url: ../research/opensearch-security-integration.html
+            - listitem [ref=f20e96]:
+              - link "Plugin Packaging & Distribution" [ref=f20e97] [cursor=pointer]:
+                - /url: ../research/plugin-packaging-distribution.html
+        - generic [ref=f20e98]:
+          - heading "🔒 Security & Safety" [level=4] [ref=f20e99]
+          - list [ref=f20e100]:
+            - listitem [ref=f20e101]:
+              - link "Security Engine Architecture" [ref=f20e102] [cursor=pointer]:
+                - /url: ../architecture/security-safety-engine.html
+            - listitem [ref=f20e103]:
+              - link "OpenSearch Security Integration" [ref=f20e104] [cursor=pointer]:
+                - /url: ../research/opensearch-security-integration.html
+            - listitem [ref=f20e105]:
+              - link "Licensing Stack & Compliance" [ref=f20e106] [cursor=pointer]:
+                - /url: ../architecture/research/licensing-stack.html
+        - generic [ref=f20e107]:
+          - heading "🚀 Release & Operations" [level=4] [ref=f20e108]
+          - list [ref=f20e109]:
+            - listitem [ref=f20e110]:
+              - link "Release Hardening Guide" [ref=f20e111] [cursor=pointer]:
+                - /url: ../operations/release.html
+            - listitem [ref=f20e112]:
+              - link "Versioning Strategy" [ref=f20e113] [cursor=pointer]:
+                - /url: ../operations/versioning.html
+            - listitem [ref=f20e114]:
+              - link "Doctor Runbook" [ref=f20e115] [cursor=pointer]:
+                - /url: ../operations/doctor-runbook.html
+            - listitem [ref=f20e116]:
+              - link "Acceptance Criteria" [ref=f20e117] [cursor=pointer]:
+                - /url: ../operations/acceptance-criteria.html
+            - listitem [ref=f20e118]:
+              - link "Admin Guide" [ref=f20e119] [cursor=pointer]:
+                - /url: ../operations/admin-guide.html
+            - listitem [ref=f20e120]:
+              - link "User Guide" [ref=f20e121] [cursor=pointer]:
+                - /url: ../operations/user-guide.html
+            - listitem [ref=f20e122]:
+              - link "Quickstart Guide" [ref=f20e123] [cursor=pointer]:
+                - /url: ../operations/quickstart.html
+            - listitem [ref=f20e124]:
+              - link "API Documentation" [ref=f20e125] [cursor=pointer]:
+                - /url: ../API.html
+        - generic [ref=f20e126]:
+          - heading "📋 PMO & Process" [level=4] [ref=f20e127]
+          - list [ref=f20e128]:
+            - listitem [ref=f20e129]:
+              - link "PMO Process" [ref=f20e130] [cursor=pointer]:
+                - /url: ../operations/pmo-process.html
+            - listitem [ref=f20e131]:
+              - link "Roadmap" [ref=f20e132] [cursor=pointer]:
+                - /url: ../operations/roadmap.html
+            - listitem [ref=f20e133]:
+              - link "Standard Operating Procedures" [ref=f20e134] [cursor=pointer]:
+                - /url: ../SOP.html
+            - listitem [ref=f20e135]:
+              - link "Project Vision" [ref=f20e136] [cursor=pointer]:
+                - /url: ../VISION.html
+            - listitem [ref=f20e137]:
+              - link "Full Documentation Index" [ref=f20e138] [cursor=pointer]:
+                - /url: documentation-index.html
+    - generic [ref=f20e139]:
+      - generic [ref=f20e140]:
+        - generic [ref=f20e141]:
+          - generic [ref=f20e142]: Not Started
+          - generic [ref=f20e145]: "0"
+        - generic [ref=f20e146]: No tasks
+      - generic [ref=f20e148]:
+        - generic [ref=f20e149]:
+          - generic [ref=f20e150]: In Progress
+          - generic [ref=f20e153]: "0"
+        - generic [ref=f20e154]: No tasks
+      - generic [ref=f20e156]:
+        - generic [ref=f20e157]:
+          - generic [ref=f20e158]: In Review
+          - generic [ref=f20e162]: "0"
+        - generic [ref=f20e163]: No tasks
+      - generic [ref=f20e165]:
+        - generic [ref=f20e166]:
+          - generic [ref=f20e167]: Done
+          - generic [ref=f20e170]: "0"
+        - generic [ref=f20e171]: No tasks

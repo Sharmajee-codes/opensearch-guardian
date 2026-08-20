@@ -1,0 +1,28 @@
+{
+  "id": "guardian",
+  "version": "1.0.0",
+  "opensearchDashboardsVersion": "^2.14.0",
+  "requiredPlugins": ["securityDashboards"],
+  "uiExports": {
+    "app": {
+      "title": "Guardian",
+      "description": "OpenSearch Guardian Dashboards - Monitoring, Diagnosis, Optimization, and Provisioning",
+      "path": "/app/guardian",
+      "main": "src/App.tsx",
+      "manifestPath": "public/guardianIcon.js"
+    },
+    "navLinks": [
+      { "id": "guardian-overview", "title": "Overview", "path": "/app/guardian#/overview", "order": 100 },
+      { "id": "guardian-health", "title": "Health", "path": "/app/guardian#/health", "order": 200 },
+      { "id": "guardian-nodes", "title": "Nodes", "path": "/app/guardian#/nodes", "order": 300 },
+      { "id": "guardian-indices", "title": "Indices", "path": "/app/guardian#/indices", "order": 400 },
+      { "id": "guardian-shards", "title": "Shards", "path": "/app/guardian#/shards", "order": 500 },
+      { "id": "guardian-doctor", "title": "Doctor", "path": "/app/guardian#/doctor", "order": 600 },
+      { "id": "guardian-optimizer", "title": "Optimizer", "path": "/app/guardian#/optimizer", "order": 700 },
+      { "id": "guardian-capacity", "title": "Capacity", "path": "/app/guardian#/capacity", "order": 800 },
+      { "id": "guardian-findings", "title": "Findings", "path": "/app/guardian#/findings", "order": 900 },
+      { "id": "guardian-recommendations", "title": "Recommendations", "path": "/app/guardian#/recommendations", "order": 1000 },
+      { "id": "guardian-admin", "title": "Admin Settings", "path": "/app/guardian#/admin", "order": 1100 }
+    ]
+  }
+}

@@ -9,7 +9,7 @@ creating a circular dependency on the connection-management layer.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -126,6 +126,24 @@ class ConnectionProfile(BaseModel):
         description="Filesystem path to a custom CA bundle (alt to keychain)",
     )
 
+    # ----- Proxy configuration -----
+    proxy_url: str | None = Field(
+        default=None,
+        description="HTTP/HTTPS proxy URL (e.g., http://proxy.example.com:8080)",
+    )
+    proxy_auth_username: str | None = Field(
+        default=None,
+        description="Proxy authentication username",
+    )
+    proxy_auth_password: str | None = Field(
+        default=None,
+        description="Proxy authentication password",
+    )
+    proxy_ssl_verify: bool = Field(
+        default=True,
+        description="Whether to verify SSL for proxy connections",
+    )
+
     # ----- write / provisioning gating (ADR-002) -----
     write_enabled: bool = Field(default=False)
     provisioning_enabled: bool = Field(default=False)
@@ -136,8 +154,8 @@ class ConnectionProfile(BaseModel):
     last_test_at: datetime | None = None
 
     # ----- metadata -----
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     is_active: bool = True
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -158,21 +176,21 @@ class ConnectionProfile(BaseModel):
         """Enable write mode (does NOT grant OpenSearch permissions)."""
         self.write_enabled = True
         self.mode = ConnectionMode.READ_WRITE
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(UTC)
 
     def enable_provisioning(self) -> None:
         """Enable provisioning mode (does NOT grant OpenSearch permissions)."""
         self.write_enabled = True
         self.provisioning_enabled = True
         self.mode = ConnectionMode.PROVISIONING
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(UTC)
 
     def disable_write(self) -> None:
         """Revert to read-only mode."""
         self.write_enabled = False
         self.provisioning_enabled = False
         self.mode = ConnectionMode.READ_ONLY
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(UTC)
 
     def is_read_only(self) -> bool:
         return self.mode == ConnectionMode.READ_ONLY
@@ -217,4 +235,4 @@ class ConnectionTestResult(BaseModel):
     tls: TLSCheckResult | None = None
     errors: list[str] = Field(default_factory=list)
     fatal_errors: list[str] = Field(default_factory=list)
-    tested_at: datetime = Field(default_factory=datetime.utcnow)
+    tested_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

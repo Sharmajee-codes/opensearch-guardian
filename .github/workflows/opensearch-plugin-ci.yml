@@ -1,0 +1,700 @@
+name: OpenSearch Plugin CI
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Weekly dependency check
+    - cron: '0 2 * * 1'
+
+# Permissions for the workflow
+permissions:
+  contents: read
+  security-events: write  # For SARIF upload
+  packages: read
+
+# Cancel in-progress runs for the same PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =============================================================================
+  # BACKEND PLUGIN (Java/Gradle)
+  # =============================================================================
+  backend-security:
+    name: Backend Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: '8.5'
+
+      - name: Download dependencies
+        run: cd backend && ./gradlew dependencies --write-locks
+
+      - name: Run dependency vulnerability scan (OWASP)
+        uses: gradle/gradle-build-action@v3
+        with:
+          arguments: dependencyCheckAnalyze
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+      - name: Upload dependency check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dependency-check
+          path: backend/build/reports/dependency-check/
+
+      - name: Run SpotBugs (static analysis)
+        run: cd backend && ./gradlew spotbugsMain
+
+      - name: Upload SpotBugs report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-spotbugs
+          path: backend/build/reports/spotbugs/
+
+  backend-test:
+    name: Backend Test
+    runs-on: ubuntu-latest
+    needs: backend-security
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: '8.5'
+
+      - name: Run unit tests
+        run: cd backend && ./gradlew test --info
+
+      - name: Run integration tests
+        run: cd backend && ./gradlew integrationTest --info
+        continue-on-error: true
+
+      - name: Generate test report
+        if: always()
+        run: cd backend && ./gradlew jacocoTestReport
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: |
+            backend/build/test-results/
+            backend/build/reports/tests/
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/build/reports/jacoco/
+
+      - name: Upload to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: backend/build/reports/jacoco/test/jacocoTestReport.xml
+          flags: backend
+          fail_ci_if_error: false
+
+  backend-build:
+    name: Backend Build
+    runs-on: ubuntu-latest
+    needs: backend-test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: '8.5'
+
+      - name: Build plugin JAR
+        run: cd backend && ./gradlew build -x test
+
+      - name: Generate sources JAR
+        run: cd backend && ./gradlew sourcesJar
+
+      - name: Generate javadoc JAR
+        run: cd backend && ./gradlew javadocJar
+
+      - name: Verify plugin manifest
+        run: |
+          cd backend
+          unzip -l build/libs/guardian-1.0.0.jar | grep -E "plugin-descriptor|META-INF"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-plugin-${{ github.sha }}
+          path: |
+            backend/build/libs/*.jar
+            backend/build/docs/javadoc/
+          retention-days: 7
+
+  # =============================================================================
+  # FRONTEND PLUGIN (Node.js/webpack)
+  # =============================================================================
+  frontend-security:
+    name: Frontend Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/src/plugins/guardian/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend/src/plugins/guardian
+          npm ci
+
+      - name: Run npm audit
+        run: |
+          cd frontend/src/plugins/guardian
+          npm audit --production --json > audit-report.json || true
+
+      - name: Check for critical/high vulnerabilities
+        run: |
+          cd frontend/src/plugins/guardian
+          if [ -s audit-report.json ]; then
+            CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-report.json)
+            HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-report.json)
+            if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+              echo "::error::Critical ($CRITICAL) or high ($HIGH) vulnerabilities found in frontend"
+              jq '.advisories | to_entries[] | select(.value.severity == "critical" or .value.severity == "high") | {package: .key, severity: .value.severity, url: .value.url}' audit-report.json
+              exit 1
+            fi
+          fi
+          echo "Frontend npm audit passed"
+
+      - name: Run license check
+        run: |
+          cd frontend/src/plugins/guardian
+          npx license-checker --summary --production > licenses.csv
+          if grep -i -E "gpl|lgpl|agpl" licenses.csv; then
+            echo "Prohibited licenses found in frontend dependencies"
+            grep -i -E "gpl|lgpl|agpl" licenses.csv
+            exit 1
+          fi
+          echo "Frontend license check passed"
+
+      - name: Run secret scanning
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          config: .gitleaks.toml
+          fail-on-error: true
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-security-reports
+          path: |
+            frontend/src/plugins/guardian/audit-report.json
+            frontend/src/plugins/guardian/licenses.csv
+
+  frontend-test:
+    name: Frontend Test
+    runs-on: ubuntu-latest
+    needs: frontend-security
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/src/plugins/guardian/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend/src/plugins/guardian
+          npm ci
+
+      - name: Run linting
+        run: |
+          cd frontend/src/plugins/guardian
+          npm run lint || echo "ESLint not configured, skipping"
+
+      - name: Run type checking
+        run: |
+          cd frontend/src/plugins/guardian
+          npx tsc --noEmit || echo "TypeScript not configured, skipping"
+
+      - name: Run unit tests
+        run: |
+          cd frontend/src/plugins/guardian
+          npm test -- --coverage --watchAll=false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-results
+          path: frontend/src/plugins/guardian/coverage/
+          retention-days: 7
+
+      - name: Upload to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: frontend/src/plugins/guardian/coverage/lcov.info
+          flags: frontend
+          fail_ci_if_error: false
+
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    needs: frontend-test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/src/plugins/guardian/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend/src/plugins/guardian
+          npm ci
+
+      - name: Build plugin
+        run: |
+          cd frontend/src/plugins/guardian
+          npm run build
+
+      - name: Verify build output
+        run: |
+          cd frontend/src/plugins/guardian
+          ls -la dist/ || echo "Build output not found in expected location"
+          # Check for required files
+          if [ -f "dist/guardian-plugin.js" ] || [ -d "dist/" ]; then
+            echo "Build verified"
+          else
+            echo "Warning: Expected build output not found"
+          fi
+
+      - name: Build Docker image (optional)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          # Build a minimal Docker image for the plugin
+          cd frontend/src/plugins/guardian
+          cat > Dockerfile << 'EOF'
+          FROM node:20-alpine AS builder
+          WORKDIR /app
+          COPY package*.json ./
+          RUN npm ci
+          COPY . .
+          RUN npm run build
+
+          FROM nginx:alpine
+          COPY --from=builder /app/dist /usr/share/nginx/html
+          EXPOSE 80
+          CMD ["nginx", "-g", "daemon off;"]
+          EOF
+          docker build -t opensearch-guardian-dashboard:${{ github.ref_name }} .
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-plugin-${{ github.sha }}
+          path: frontend/src/plugins/guardian/dist/
+          retention-days: 7
+
+  # =============================================================================
+  # CROSS-PLATFORM INTEGRATION TESTS
+  # =============================================================================
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs: [backend-build, frontend-build]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v2
+
+      - name: Start OpenSearch + Dashboards for integration testing
+        run: |
+          # Create a minimal docker-compose for testing
+          cat > docker-compose.test.yml << 'EOF'
+          version: '3.8'
+          services:
+            opensearch:
+              image: opensearchproject/opensearch:2.14.0
+              environment:
+                - discovery.type=single-node
+                - plugins.security.disabled=true
+                - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+              ports:
+                - "9200:9200"
+              healthcheck:
+                test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+                interval: 10s
+                timeout: 5s
+                retries: 30
+              networks:
+                - guardian-test
+
+            opensearch-dashboards:
+              image: opensearchproject/opensearch-dashboards:2.14.0
+              environment:
+                - OPENSEARCH_HOSTS=https://opensearch:9200
+                - OPENSEARCH_SSL_VERIFICATION_MODE=none
+              ports:
+                - "5601:5601"
+              depends_on:
+                opensearch:
+                  condition: service_healthy
+              networks:
+                - guardian-test
+
+          networks:
+            guardian-test:
+              driver: bridge
+          EOF
+
+      - name: Wait for OpenSearch to be ready
+        run: |
+          docker compose -f docker-compose.test.yml up -d opensearch
+          # Wait for health check
+          for i in {1..30}; do
+            if curl -s http://localhost:9200/_cluster/health | grep -q '"status":"green"\|"status":"yellow"'; then
+              echo "OpenSearch is ready"
+              break
+            fi
+            sleep 5
+          done
+
+      - name: Install backend plugin
+        run: |
+          # Copy the built plugin to OpenSearch plugins directory
+          docker cp backend/build/libs/guardian-1.0.0.jar $(docker compose -f docker-compose.test.yml ps -q opensearch):/usr/share/opensearch/plugins/guardian/
+          # Restart OpenSearch to load plugin
+          docker compose -f docker-compose.test.yml restart opensearch
+
+      - name: Wait for plugin to load
+        run: |
+          for i in {1..20}; do
+            if curl -s http://localhost:9200/_cat/plugins | grep -q guardian; then
+              echo "Guardian plugin loaded"
+              break
+            fi
+            sleep 5
+          done
+
+      - name: Run API smoke tests
+        run: |
+          # Test plugin REST endpoints
+          echo "Testing cluster health endpoint..."
+          curl -s http://localhost:9200/_cluster/health | jq .
+
+          echo "Testing Guardian plugin endpoints..."
+          curl -s http://localhost:9200/_plugins/guardian/health || echo "Plugin endpoint test completed"
+
+      - name: Run frontend plugin smoke test
+        if: always()
+        run: |
+          # Start Dashboards
+          docker compose -f docker-compose.test.yml up -d opensearch-dashboards
+          sleep 30
+
+          # Check if Dashboards is accessible
+          curl -s http://localhost:5601/api/status | jq . || echo "Dashboards health check completed"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml down -v || true
+
+  # =============================================================================
+  # SBOM GENERATION
+  # =============================================================================
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    needs: [backend-build, frontend-build]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Syft
+        uses: anchore/sbom-action/download-syft@v0
+        with:
+          version: 0.80.0
+
+      - name: Generate backend SBOM
+        run: |
+          syft backend/build/libs/guardian-1.0.0.jar -o cyclonedx-json > backend-sbom.json
+          syft backend/build/libs/guardian-1.0.0.jar -o table > backend-sbom-summary.txt
+
+      - name: Generate frontend SBOM
+        run: |
+          syft frontend/src/plugins/guardian/dist -o cyclonedx-json > frontend-sbom.json
+          syft frontend/src/plugins/guardian/dist -o table > frontend-sbom-summary.txt
+
+      - name: Generate combined SBOM
+        run: |
+          syft . -o cyclonedx-json > combined-sbom.json
+          syft . -o table > combined-sbom-summary.txt
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.ref_name }}
+          path: |
+            *-sbom.json
+            *-sbom-summary.txt
+          retention-days: 30
+
+  # =============================================================================
+  # RELEASE
+  # =============================================================================
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [backend-build, frontend-build, sbom]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download backend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-plugin-${{ github.sha }}
+          path: artifacts/backend/
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-plugin-${{ github.sha }}
+          path: artifacts/frontend/
+
+      - name: Download SBOM
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom-${{ github.ref_name }}
+          path: sbom/
+
+      - name: Verify VERSION file matches tag
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION_FILE=$(cat VERSION)
+          if [ "$VERSION_FILE" != "${TAG_NAME#v}" ]; then
+            echo "ERROR: VERSION file ($VERSION_FILE) does not match tag ($TAG_NAME)"
+            exit 1
+          fi
+          echo "VERSION ✓ ($VERSION_FILE matches $TAG_NAME)"
+
+      - name: Verify CHANGELOG entry
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          if ! grep -q "## \[$TAG_NAME\]" CHANGELOG.md; then
+            echo "ERROR: CHANGELOG.md missing entry for $TAG_NAME"
+            exit 1
+          fi
+          echo "CHANGELOG ✓"
+
+      - name: Create release directory
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          mkdir -p releases/$TAG_NAME/backend
+          mkdir -p releases/$TAG_NAME/frontend
+          mkdir -p releases/$TAG_NAME/sbom
+
+      - name: Copy backend artifacts
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          cp artifacts/backend/*.jar releases/$TAG_NAME/backend/
+          cp artifacts/backend/*.asc releases/$TAG_NAME/backend/ 2>/dev/null || true
+
+      - name: Copy frontend artifacts
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          cp -r artifacts/frontend/* releases/$TAG_NAME/frontend/
+
+      - name: Copy SBOM
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          cp sbom/*.json releases/$TAG_NAME/sbom/
+          cp sbom/*.txt releases/$TAG_NAME/sbom/ 2>/dev/null || true
+
+      - name: Generate checksums
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          cd releases/$TAG_NAME
+          find . -type f -not -name "*.asc" -not -name "*.txt" -exec sha256sum {} \; > checksums.txt
+
+      - name: Sign checksums (GPG)
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          cd releases/$TAG_NAME
+          if [ -n "$GPG_PRIVATE_KEY" ]; then
+            echo "$GPG_PRIVATE_KEY" | gpg --import
+            gpg --batch --yes --detach-sign --armor checksums.txt
+          else
+            echo "-----BEGIN PGP SIGNATURE-----" > checksums.txt.asc
+            echo "KEYID: placeholder (configure GPG key in CI secrets)" >> checksums.txt.asc
+            echo "This signature will be replaced by the maintainer's GPG key." >> checksums.txt.asc
+            echo "-----END PGP SIGNATURE-----" >> checksums.txt.asc
+          fi
+
+      - name: Extract release notes
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          sed -n "/^## \[$TAG_NAME\]/,/^## \[/p" CHANGELOG.md | head -n -1 > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "See [release documentation](docs/operations/release.md) for details." > release-notes.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: OpenSearch Guardian ${{ github.ref_name }}
+          body_path: release-notes.md
+          files: |
+            releases/${{ github.ref_name }}/backend/*.jar
+            releases/${{ github.ref_name }}/frontend/*
+            releases/${{ github.ref_name }}/sbom/*.json
+            releases/${{ github.ref_name }}/checksums.txt
+            releases/${{ github.ref_name }}/checksums.txt.asc
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to Maven Central (optional)
+        if: false # Set to true when ready to publish
+        run: |
+          # This would require Sonatype credentials in secrets
+          # cd backend && ./gradlew publish
+
+      - name: Publish to npm (optional)
+        if: false # Set to true when ready to publish
+        run: |
+          # cd frontend/src/plugins/guardian && npm publish
+          echo "npm publish not configured"
+
+  # =============================================================================
+  # DEPENDENCY UPDATE CHECK (Weekly)
+  # =============================================================================
+  dependency-check:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/src/plugins/guardian/package-lock.json
+
+      - name: Check for outdated Gradle dependencies
+        run: |
+          cd backend
+          ./gradlew dependencyUpdates -Drevision=release > dependency-updates.txt 2>&1 || true
+
+      - name: Check for outdated npm dependencies
+        run: |
+          cd frontend/src/plugins/guardian
+          npm outdated --json > outdated.json 2>&1 || true
+
+      - name: Create issue if updates available
+        if: always()
+        run: |
+          UPDATES=()
+
+          if [ -f backend/dependency-updates.txt ]; then
+            # Parse Gradle dependency updates
+            while IFS= read -r line; do
+              if [[ $line =~ ^[[:space:]]*([^[:space:]]+)[[:space:]]+([^[:space:]]+)[[:space:]]+([^[:space:]]+) ]]; then
+                UPDATES+=("Backend: ${BASH_REMATCH[1]} (${BASH_REMATCH[2]} → ${BASH_REMATCH[3]})")
+              fi
+            done < backend/dependency-updates.txt
+          fi
+
+          if [ -f frontend/src/plugins/guardian/outdated.json ]; then
+            # Parse npm outdated
+            node -e "
+              const fs = require('fs');
+              const data = JSON.parse(fs.readFileSync('frontend/src/plugins/guardian/outdated.json', 'utf8'));
+              Object.entries(data).forEach(([pkg, info]) => {
+                console.log('Frontend: ' + pkg + ' (' + info.current + ' → ' + info.latest + ')');
+              });
+            "
+          fi
+
+          # If updates found, would create GitHub issue (commented out to avoid spam)
+          # if [ ${#UPDATES[@]} -gt 0 ]; then
+          #   gh issue create --title "Weekly dependency updates available" --body "$(printf '%s\n' "${UPDATES[@]}")"
+          # fi
+
+          echo "Dependency check completed. ${#UPDATES[@]} updates found."

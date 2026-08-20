@@ -3,10 +3,10 @@ Policy Engine for the Security & Safety Engine.
 Evaluates operation classification and enforces approval workflows.
 """
 
-from enum import Enum
 from dataclasses import dataclass
-from typing import List, Optional
-from .classification import SafetyClassification, OperationContext
+from enum import Enum
+
+from .classification import OperationContext, SafetyClassification, classify_operation
 
 
 class PolicyDecision(Enum):
@@ -31,19 +31,30 @@ class PolicyEngine:
     Implements the access control policies from SOP §8 and ADR-002.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Operations that are never allowed autonomously in V1
         self.never_allowed_ops = {
             "index-delete", "node-delete", "pvc-delete", "snapshot-delete",
             "cluster-shutdown", "data-purge", "forced-merge-expunge"
         }
 
-        # Operations that require explicit approval even with write access
+        # Operations that require explicit approval even with write access.
+        # These are enforced unconditionally to ensure destructive provisioning
+        # always gets human sign-off.
         self.approval_required_ops = {
-            "index-delete", "node-delete", "pvc-delete", "snapshot-delete",
-            "cluster-shutdown", "data-purge", "forced-merge-expunge",
             "docker-compose-down", "k8s-scale-down", "helm-uninstall"
         }
+
+    def _precheck(self, context: OperationContext) -> PolicyDecision | None:
+        """Fast-path policy filter that preserves destructive denials
+        and the unconditional approval-required provisioning operations.
+        """
+        op_type = context.operation_type
+        if op_type in self.never_allowed_ops:
+            return PolicyDecision.DENY
+        if op_type in self.approval_required_ops:
+            return PolicyDecision.REQUIRE_APPROVAL
+        return None
 
     def evaluate_operation(self, context: OperationContext) -> PolicyDecision:
         """
@@ -51,11 +62,10 @@ class PolicyEngine:
 
         Returns the appropriate policy decision.
         """
-        # Never allow destructive operations autonomously in V1
-        if context.operation_type in self.never_allowed_ops:
-            return PolicyDecision.DENY
+        pre = self._precheck(context)
+        if pre is not None:
+            return pre
 
-        # Check if operation requires approval based on classification
         classification = classify_operation(context)
 
         if classification == SafetyClassification.APPROVAL_REQUIRED:
@@ -65,7 +75,7 @@ class PolicyEngine:
         else:
             return PolicyDecision.ALLOW
 
-    def validate_operation(self, context: OperationContext) -> List[OperationViolation]:
+    def validate_operation(self, context: OperationContext) -> list[OperationViolation]:
         """
         Validate an operation and return any violations.
 

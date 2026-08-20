@@ -3,30 +3,30 @@
 # dry-run/diff, immutable audit snapshots, destructive-op guardrails,
 # OS keychain secrets
 
+from .audit_store import AuditEntry, AuditStore
 from .classification import (
+    OperationContext,
     SafetyClassification,
     classify_operation,
-    OperationContext,
 )
-from .policy_engine import PolicyEngine, OperationViolation
-from .mutation_filter import MutationFilter, MutationRequest, MutationResult
-from .dryrun_engine import DryRunEngine, DiffResult
-from .audit_store import AuditStore, AuditEntry
+from .dryrun_engine import DiffResult, DryRunEngine
 from .keychain_proxy import KeychainProxy, SecretNotFoundError
+from .mutation_filter import MutationFilter, MutationRequest, MutationResult
+from .policy_engine import OperationViolation, PolicyEngine
 
 __all__ = [
-    "SafetyClassification",
-    "classify_operation",
-    "OperationContext",
-    "PolicyEngine",
-    "OperationViolation",
+    "AuditEntry",
+    "AuditStore",
+    "DiffResult",
+    "DryRunEngine",
+    "KeychainProxy",
     "MutationFilter",
     "MutationRequest",
     "MutationResult",
-    "DryRunEngine",
-    "DiffResult",
-    "AuditStore",
-    "AuditEntry",
-    "KeychainProxy",
+    "OperationContext",
+    "OperationViolation",
+    "PolicyEngine",
+    "SafetyClassification",
     "SecretNotFoundError",
+    "classify_operation",
 ]

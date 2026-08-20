@@ -4,19 +4,15 @@ from __future__ import annotations
 
 import logging
 import ssl
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
-
-import httpx
 
 from guardian.core_types.connection_models import (
     AuthMethod,
-    ClientCertCredentials,
     ConnectionProfile,
-    ConnectionStatus,
     ConnectionTestResult,
 )
-from guardian.core_types.exceptions import AuthError, KeychainError, TLSError
+from guardian.core_types.exceptions import KeychainError, TLSError
 
 if TYPE_CHECKING:
     from guardian.connections.keychain import KeychainStore
@@ -51,7 +47,6 @@ def _build_tls_context(profile: ConnectionProfile) -> ssl.SSLContext | bool:
 def _inspect_cert(host: str, port: int, tls_ctx: ssl.SSLContext | bool) -> dict:
     """Open a TLS socket and return certificate fields (or an error dict)."""
     import socket
-    from datetime import datetime
 
     result: dict = {}
     try:
@@ -133,7 +128,7 @@ class ConnectionTester:
 
                     expiry = tls_raw.get("not_valid_after")
                     tls_valid = "error" not in tls_raw
-                    if tls_valid and expiry and expiry < datetime.now(timezone.utc):
+                    if tls_valid and expiry and expiry < datetime.now(UTC):
                         tls_valid = False
                         tls_raw["error"] = "Certificate has expired"
                     tls_result = TLSCheckResult(
@@ -160,6 +155,14 @@ class ConnectionTester:
                 "use_ssl": profile.opensearch_url.scheme == "https",
                 "verify_certs": profile.tls_verify and auth != AuthMethod.NONE,
             }
+
+            # Proxy configuration
+            if profile.proxy_url:
+                client_kwargs["proxy"] = profile.proxy_url
+                if profile.proxy_auth_username and profile.proxy_auth_password:
+                    client_kwargs["proxy_auth"] = (profile.proxy_auth_username, profile.proxy_auth_password)
+                # Note: opensearch-py uses the system's default SSL handling for proxies
+                # Additional proxy SSL verification would require custom transport
             if auth == AuthMethod.BASIC and profile.credential_ref:
                 store = self._store or _default_store()
                 try:
@@ -234,11 +237,11 @@ class ConnectionTester:
             tls=tls_result,
             errors=errors,
             fatal_errors=fatal_errors,
-            tested_at=datetime.now(timezone.utc),
+            tested_at=datetime.now(UTC),
         )
 
 
-def _default_store() -> "KeychainStore":
+def _default_store() -> KeychainStore:
     from guardian.connections.keychain import KeychainStore
 
     return KeychainStore()

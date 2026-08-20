@@ -13,12 +13,11 @@ from guardian.core_types.exceptions import (
     WriteModeError,
 )
 
-
 __all__ = [
-    "ConnectionError",
     "AuthError",
-    "TLSError",
-    "KeychainError",
-    "WriteModeError",
     "CollectionError",
+    "ConnectionError",
+    "KeychainError",
+    "TLSError",
+    "WriteModeError",
 ]

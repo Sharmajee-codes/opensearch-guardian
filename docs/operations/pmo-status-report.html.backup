@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PMO Status Report - OpenSearch Guardian</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2 { color: #2c3e50; }
+        .section { margin-bottom: 30px; padding: 15px; border-left: 4px solid #3498db; background-color: #f8f9fa; }
+        .task-list { margin: 10px 0; }
+        .task-item { padding: 8px; margin: 5px 0; background-color: white; border-radius: 3px; border-left: 3px solid #27ae60; }
+        .blocker { border-left-color: #e74c3c !important; }
+        .completed { border-left-color: #27ae60 !important; }
+        .in-progress { border-left-color: #f39c12 !important; }
+        .upcoming { border-left-color: #9b59b6 !important; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #ecf0f1; }
+        tr:hover { background-color: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>PMO Status Report</h1>
+    <p><strong>Generated:</strong> <span id="timestamp">Loading...</span></p>
+    <p><strong>Project:</strong> OpenSearch Guardian</p>
+    <p><strong>PMO:</strong> Bharti (bharti)</p>
+
+    <div class="section">
+        <h2>Requirements Received from God</h2>
+        <div id="requirements-section">
+            <p>No requirements logged yet.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Assignments Distributed to Agents</h2>
+        <div id="assignments-section">
+            <p>No assignments logged yet.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Completed Tasks</h2>
+        <div class="task-list" id="completed-section">
+            <p>No completed tasks logged yet.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>In-Progress Work</h2>
+        <div class="task-list" id="inprogress-section">
+            <p>No in-progress work logged yet.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Blockers and Issues</h2>
+        <div class="task-list" id="blockers-section">
+            <p>No blockers logged yet.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Upcoming Priorities</h2>
+        <div class="task-list" id="upcoming-section">
+            <p>No upcoming priorities logged yet.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Notes and Observations</h2>
+        <div id="notes-section">
+            <p>PMO report initialized. Awaiting data collection.</p>
+        </div>
+    </div>
+
+    <script>
+        // Update timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+    </script>
+</body>
+</html>

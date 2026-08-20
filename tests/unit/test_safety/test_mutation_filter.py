@@ -1,8 +1,12 @@
 """Unit tests for MutationFilter."""
 
 import pytest
-from guardian.safety.mutation_filter import MutationFilter, MutationDecision
 from guardian.safety.classification import OperationContext
+from guardian.safety.mutation_filter import (
+    MutationDecision,
+    MutationFilter,
+    MutationRequest,
+)
 
 
 @pytest.fixture

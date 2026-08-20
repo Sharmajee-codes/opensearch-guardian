@@ -1,0 +1,68 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - heading "PMO Status Dashboard" [level=1] [ref=e4]
+      - generic [ref=e5]:
+        - generic [ref=e6]: Live - Implementation Phase Active
+        - generic [ref=e8]:
+          - text: "Project:"
+          - strong [ref=e9]: OpenSearch Guardian
+        - generic [ref=e10]:
+          - text: "Generated:"
+          - strong
+  - generic [ref=e11]:
+    - textbox "Search tasks" [ref=e13]:
+      - /placeholder: Search tasks by ID, title, assignee...
+    - generic [ref=e14]:
+      - generic [ref=e15]: Status
+      - combobox "Status" [ref=e16] [cursor=pointer]:
+        - option "All Statuses" [selected]
+        - option "Not Started"
+        - option "In Progress"
+        - option "In Review"
+        - option "Done"
+        - option "Blocked"
+    - generic [ref=e17]:
+      - generic [ref=e18]: Assignee
+      - combobox "Assignee" [ref=e19] [cursor=pointer]:
+        - option "All Assignees" [selected]
+    - generic [ref=e20]:
+      - generic [ref=e21]: Workstream
+      - combobox "Workstream" [ref=e22] [cursor=pointer]:
+        - option "All Workstreams" [selected]
+    - button "Clear Filters" [ref=e23] [cursor=pointer]
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e31]:
+        - generic [ref=e32]: "0"
+        - generic [ref=e33]: Total Tasks
+      - generic [ref=e39]:
+        - generic [ref=e40]: "0"
+        - generic [ref=e41]: In Progress
+      - generic [ref=e46]:
+        - generic [ref=e47]: "0"
+        - generic [ref=e48]: Done
+      - generic [ref=e55]:
+        - generic [ref=e56]: "0"
+        - generic [ref=e57]: Blocked
+    - generic [ref=e58]:
+      - generic [ref=e59]:
+        - generic [ref=e60]:
+          - generic [ref=e61]: Not Started
+          - generic [ref=e64]: "0"
+        - generic [ref=e65]: No tasks
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]: In Progress
+          - generic [ref=e72]: "0"
+        - generic [ref=e73]: No tasks
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - generic [ref=e77]: In Review
+          - generic [ref=e81]: "0"
+        - generic [ref=e82]: No tasks
+      - generic [ref=e84]:
+        - generic [ref=e85]:
+          - generic [ref=e86]: Done
+          - generic [ref=e89]: "0"
+        - generic [ref=e90]: No tasks

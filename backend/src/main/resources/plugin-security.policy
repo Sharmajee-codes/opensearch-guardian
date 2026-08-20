@@ -1,0 +1,13 @@
+grant {
+    // Allow reading system properties that start with "guardian."
+    permission java.util.PropertyPermission "guardian.*", "read";
+
+    // Allow file operations within the plugin's own directory
+    permission java.io.FilePermission "${user.dir}${/}plugins${/}guardian${/}-", "read,write,delete";
+
+    // Allow listening on ephemeral ports (for any embedded servers, if any)
+    permission java.net.SocketPermission "localhost:0", "listen,resolve";
+
+    // Allow logging (if using java.util.logging)
+    permission java.util.logging.LoggingPermission "control";
+};

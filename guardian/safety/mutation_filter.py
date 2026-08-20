@@ -5,10 +5,10 @@ destructive operation guards.
 """
 
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
 from enum import Enum
-from .classification import SafetyClassification
-from .policy_engine import PolicyEngine, OperationViolation, OperationContext
+from typing import Any
+
+from .policy_engine import OperationContext, OperationViolation, PolicyEngine
 
 
 class MutationDecision(Enum):
@@ -24,7 +24,7 @@ class MutationRequest:
     operation_type: str
     target_resource: str
     resource_type: str
-    parameters: Dict[str, Any]
+    parameters: dict[str, Any]
     connection_context: OperationContext
 
 
@@ -32,7 +32,7 @@ class MutationRequest:
 class MutationResult:
     """Result of mutation filtering."""
     decision: MutationDecision
-    violations: List[OperationViolation]
+    violations: list[OperationViolation]
     allowed: bool
     requires_dry_run: bool = False
 
@@ -68,7 +68,7 @@ class MutationFilter:
             "index-shrink", "index-split", "index-reroute",
 
             # Snapshot management
-            "snapshot-delete", "snapshot-restore", "snapshot-create-repo",
+            "snapshot-delete", "snapshot-create-repo",
             "snapshot-delete-repo",
         }
 
@@ -97,48 +97,61 @@ class MutationFilter:
         Returns a MutationResult indicating whether the operation is allowed,
         requires dry-run, or should be denied.
         """
-        violations = self.policy_engine.validate_operation(request.connection_context)
-
         # Check if operation is never allowed
         if request.operation_type in self.never_allowed_operations:
-            violations.append(OperationViolation(
+            violations = [OperationViolation(
                 violation_type="operation_never_allowed",
                 message=f"Operation '{request.operation_type}' is never allowed in V1",
                 required_action="This operation is prohibited by design",
                 context=request.connection_context
-            ))
+            )]
+            return MutationResult(
+                decision=MutationDecision.DENY,
+                violations=violations,
+                allowed=False,
+                requires_dry_run=False
+            )
 
         # Check if operation is allow-listed
         if request.operation_type not in self.allowlisted_operations:
-            violations.append(OperationViolation(
+            violations = [OperationViolation(
                 violation_type="operation_not_allowlisted",
                 message=f"Operation '{request.operation_type}' is not in the allow-list",
                 required_action="Add operation to allow-list or use approved alternative",
                 context=request.connection_context
-            ))
+            )]
+            return MutationResult(
+                decision=MutationDecision.DENY,
+                violations=violations,
+                allowed=False,
+                requires_dry_run=False
+            )
 
-        # Determine if dry-run is required
-        requires_dry_run = (
-            request.operation_type in self.dry_run_required_operations and
-            len(violations) == 0  # Only require dry-run if no other violations
-        )
+        # Check if dry-run is required
+        requires_dry_run = request.operation_type in self.dry_run_required_operations
+        if requires_dry_run:
+            return MutationResult(
+                decision=MutationDecision.REQUIRE_DRY_RUN,
+                violations=[],
+                allowed=False,
+                requires_dry_run=True
+            )
 
-        # Determine overall decision
-        if len(violations) > 0:
-            decision = MutationDecision.DENY
-            allowed = False
-        elif requires_dry_run:
-            decision = MutationDecision.REQUIRE_DRY_RUN
-            allowed = False  # Not allowed until dry-run is approved
-        else:
-            decision = MutationDecision.ALLOW
-            allowed = True
+        # Run policy engine validation for remaining operations
+        violations = self.policy_engine.validate_operation(request.connection_context)
+        if violations:
+            return MutationResult(
+                decision=MutationDecision.DENY,
+                violations=violations,
+                allowed=False,
+                requires_dry_run=False
+            )
 
         return MutationResult(
-            decision=decision,
-            violations=violations,
-            allowed=allowed,
-            requires_dry_run=requires_dry_run
+            decision=MutationDecision.ALLOW,
+            violations=[],
+            allowed=True,
+            requires_dry_run=False
         )
 
     def is_operation_allowlisted(self, operation_type: str) -> bool:

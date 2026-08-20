@@ -15,15 +15,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-import time
-from datetime import datetime, timezone
-from typing import Callable, Any
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
-from guardian.core_types.exceptions import ProfileError
-from guardian.connections.exceptions import (
-    AuthError,
-    KeychainError,
-)
 from guardian.connections.keychain import KeychainStore
 from guardian.connections.tester import ConnectionTester
 from guardian.core_types.connection_models import (
@@ -32,6 +27,7 @@ from guardian.core_types.connection_models import (
     ConnectionProfile,
     ConnectionStatus,
 )
+from guardian.core_types.exceptions import ProfileError
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +85,7 @@ class ConnectionManager:
                 logger.exception("Subscriber callback failed for profile %s", profile.id)
 
     def _now(self) -> datetime:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     # ------------------------------------------------------------------
     # CRUD
@@ -107,6 +103,10 @@ class ConnectionManager:
         custom_ca_ref: str | None = None,
         metadata: dict[str, Any] | None = None,
         mode: ConnectionMode = ConnectionMode.READ_ONLY,
+        proxy_url: str | None = None,
+        proxy_auth_username: str | None = None,
+        proxy_auth_password: str | None = None,
+        proxy_ssl_verify: bool = True,
     ) -> ConnectionProfile:
         """Create and register a new connection profile.
 
@@ -131,6 +131,10 @@ class ConnectionManager:
             custom_ca_ref=custom_ca_ref,
             metadata=metadata or {},
             mode=mode,
+            proxy_url=proxy_url,
+            proxy_auth_username=proxy_auth_username,
+            proxy_auth_password=proxy_auth_password,
+            proxy_ssl_verify=proxy_ssl_verify,
         )
         # (SQLite persistence for profiles is stubbed by the broader app store layer)
         with self._lock:

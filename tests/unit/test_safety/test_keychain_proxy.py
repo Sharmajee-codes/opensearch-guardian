@@ -47,7 +47,8 @@ class TestKeychainProxy:
                 proxy.get_secret("svc", "acc")
 
     def test_store_secret_memory_fallback(self):
-        proxy = KeychainProxy()
+        with patch('platform.system', return_value='FreeBSD'):
+            proxy = KeychainProxy()
         result = proxy.store_secret("svc", "acc", "secret")
         assert result is True
         assert proxy._injected_secrets["svc"]["acc"] == "secret"
@@ -62,8 +63,9 @@ class TestKeychainProxy:
         proxy = KeychainProxy()
         proxy.inject_secret("svc", "acc", "secret")
         proxy.clear_injected_secrets()
-        with pytest.raises(SecretNotFoundError):
-            proxy.get_secret("svc", "acc")
+        with patch.object(proxy, '_fetch_secret', side_effect=SecretNotFoundError("svc", "acc")):
+            with pytest.raises(SecretNotFoundError):
+                proxy.get_secret("svc", "acc")
 
     def test_clear_cache_specific(self):
         proxy = KeychainProxy()

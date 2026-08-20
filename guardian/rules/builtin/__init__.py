@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 from .. import EvidenceItem, Finding, Rule, RuleConfig
 
@@ -21,7 +21,7 @@ class ClusterHealthRule(Rule):
 
     def evaluate(self, snapshot, config: RuleConfig) -> list[Finding]:
         findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         cs = snapshot.cluster_snapshot
         if cs is None:
             return findings
@@ -78,7 +78,7 @@ class DiskWatermarkRule(Rule):
 
     def evaluate(self, snapshot, config: RuleConfig) -> list[Finding]:
         findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         cs_id = snapshot.cluster_snapshot.snapshot_id if snapshot.cluster_snapshot else ""
         for ns in snapshot.node_snapshots.values():
             for fs in ns.filesystems:
@@ -147,7 +147,7 @@ class JvmHeapRule(Rule):
 
     def evaluate(self, snapshot, config: RuleConfig) -> list[Finding]:
         findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         cs_id = snapshot.cluster_snapshot.snapshot_id if snapshot.cluster_snapshot else ""
         for ns in snapshot.node_snapshots.values():
             jvm = ns.jvm
@@ -193,7 +193,7 @@ class JvmGcRule(Rule):
 
     def evaluate(self, snapshot, config: RuleConfig) -> list[Finding]:
         findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         cs_id = snapshot.cluster_snapshot.snapshot_id if snapshot.cluster_snapshot else ""
         gc_threshold = 10
         for ns in snapshot.node_snapshots.values():
@@ -234,7 +234,7 @@ class ShardDensityRule(Rule):
 
     def evaluate(self, snapshot, config: RuleConfig) -> list[Finding]:
         findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         cs_id = snapshot.cluster_snapshot.snapshot_id if snapshot.cluster_snapshot else ""
         cs = snapshot.cluster_snapshot
         if cs is None:
@@ -277,7 +277,7 @@ class ThreadPoolRejectionRule(Rule):
 
     def evaluate(self, snapshot, config: RuleConfig) -> list[Finding]:
         findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         cs_id = snapshot.cluster_snapshot.snapshot_id if snapshot.cluster_snapshot else ""
         for ns in snapshot.node_snapshots.values():
             for pool_name, pool in ns.thread_pools.items():
@@ -317,7 +317,7 @@ class ThreadPoolQueueRule(Rule):
 
     def evaluate(self, snapshot, config: RuleConfig) -> list[Finding]:
         findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         cs_id = snapshot.cluster_snapshot.snapshot_id if snapshot.cluster_snapshot else ""
         for ns in snapshot.node_snapshots.values():
             for pool_name, pool in ns.thread_pools.items():
@@ -358,7 +358,7 @@ class UnassignedShardsRule(Rule):
 
     def evaluate(self, snapshot, config: RuleConfig) -> list[Finding]:
         findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         cs_id = snapshot.cluster_snapshot.snapshot_id if snapshot.cluster_snapshot else ""
         for shard in snapshot.shard_states:
             if shard.state == "UNASSIGNED" and shard.primary:
@@ -396,7 +396,7 @@ class UnassignedReplicaShardsRule(Rule):
 
     def evaluate(self, snapshot, config: RuleConfig) -> list[Finding]:
         findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         cs_id = snapshot.cluster_snapshot.snapshot_id if snapshot.cluster_snapshot else ""
         for shard in snapshot.shard_states:
             if shard.state == "UNASSIGNED" and not shard.primary:
@@ -431,7 +431,7 @@ class ReadOnlyIndexRule(Rule):
 
     def evaluate(self, snapshot, config: RuleConfig) -> list[Finding]:
         findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         cs_id = snapshot.cluster_snapshot.snapshot_id if snapshot.cluster_snapshot else ""
         readonly_indices = [idx for idx in snapshot.index_snapshots.values() if idx.read_only]
         if readonly_indices:
@@ -468,7 +468,7 @@ class CpuSaturationRule(Rule):
 
     def evaluate(self, snapshot, config: RuleConfig) -> list[Finding]:
         findings: list[Finding] = []
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         cs_id = snapshot.cluster_snapshot.snapshot_id if snapshot.cluster_snapshot else ""
         for ns in snapshot.node_snapshots.values():
             if ns.os.cpu_percent >= config.cpu_warning_threshold * 100:
@@ -484,3 +484,18 @@ class CpuSaturationRule(Rule):
                     snapshot_id=cs_id, now=now,
                 ))
         return findings
+
+# Registry of all built-in rules
+BUILTIN_RULES = [
+    ClusterHealthRule(),
+    DiskWatermarkRule(),
+    JvmHeapRule(),
+    JvmGcRule(),
+    ShardDensityRule(),
+    ThreadPoolRejectionRule(),
+    ThreadPoolQueueRule(),
+    UnassignedShardsRule(),
+    UnassignedReplicaShardsRule(),
+    ReadOnlyIndexRule(),
+    CpuSaturationRule(),
+]

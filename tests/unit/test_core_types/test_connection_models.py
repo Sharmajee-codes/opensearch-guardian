@@ -102,7 +102,7 @@ class TestClientCertCredentials:
 
     def test_redacted(self):
         """Redacted should mask cert/key data."""
-        cert_data = b"cert-data"
+        cert_data = b"cert-123456"
         key_data = b"key-data"
         creds = ClientCertCredentials(cert_data=cert_data, key_data=key_data)
         redacted = creds.redacted()

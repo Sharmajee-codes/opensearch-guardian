@@ -1,0 +1,313 @@
+# Live Monitoring Streaming Design
+
+**Status:** Draft  
+**Task:** T23/T24 (Live monitoring streaming + cadence plan)  
+**Author:** Pam (pam-mszwz30z)  
+**Reviewer:** Pending  
+**Date:** 2026-08-19  
+**Dependencies:** T14 (Collectors - Angela), T15 (Electron scaffold - Jim), ADR-005 (Tiered Adaptive Collection Cadence)
+
+## Scope
+
+This document designs the live monitoring streaming layer that pushes normalized snapshots from the Collector's Snapshot Store to the Electron renderer. It covers:
+- Streaming protocol selection (SSE vs WebSocket)
+- Message format and schema
+- Replay mechanism for disconnected clients
+- Backpressure handling
+- Alignment with ADR-005 tiered cadence
+- Security considerations
+
+This is a design-only artifact — no implementation code. Implementation will occur in T15 (Electron) and guardian/streaming/ modules.
+
+## Streaming Protocol Decision: SSE vs WebSocket
+
+### Evaluation Criteria
+
+| Factor | Server-Sent Events (SSE) | WebSocket |
+|--------|--------------------------|-----------|
+| **Directionality** | Server → client only (push-only) | Full duplex |
+| **Complexity** | Simple HTTP-based, automatic reconnection | More complex protocol, custom heartbeat/reconnect logic |
+| **Browser Support** | Excellent (all modern browsers) | Excellent |
+| **Middleware Compatibility** | Works with standard HTTP intermediaries (proxies, CDNs, load balancers) | May require WebSocket-aware infrastructure |
+| **Connection Overhead** | Low (standard HTTP headers) | Higher (WebSocket handshake + framing) |
+| **Firewall/Proxy Friendly** | Yes (uses standard HTTP/HTTPS ports) | May be blocked by strict corporate proxies |
+| **Built-in Retry** | Yes (via `retry:` field and Last-Event-ID) | Custom implementation needed |
+| **Message Ordering** | Guaranteed in-order delivery per connection | Guaranteed in-order delivery per connection |
+| **Binary Data** | Base64-only (text protocol) | Native binary support |
+| **Multiple Streams** | Requires multiple connections or multiplexing | Multiple logical streams over single connection |
+
+### Decision: **Server-Sent Events (SSE)** as primary, WebSocket as alternative
+
+**Primary choice: SSE** because:
+1. **Monitoring is primarily push-only**: The Electron UI consumes snapshots but rarely sends commands back via the same channel (commands use separate IPC/restricted API boundary).
+2. **Simplicity and reliability**: Automatic reconnection, built-in retry mechanism, and HTTP infrastructure compatibility reduce failure modes.
+3. **Enterprise deployment friendly**: Works through standard HTTP proxies, firewalls, and CDNs without special configuration.
+4. **Sufficient for monitoring workloads**: Snapshot sizes are small (KB-scale), frequency is predictable (5s-5min), and latency requirements are soft (<1s delay acceptable).
+5. **Leverages existing infrastructure**: Can reuse the same HTTP server endpoint as the REST API (port consistency).
+
+**WebSocket alternative retained** for:
+- Future bidirectional needs (e.g., remote CLI commands via streaming)
+- Ultra-low latency requirements (<100ms)
+- Environments where HTTP streaming is problematic
+- Teams with existing WebSocket expertise
+
+Both implementations will share the same message format and backend integration point.
+
+## Message Format and Schema
+
+All streaming messages follow a consistent envelope format to enable future extensibility:
+
+```json
+{
+  "type": "snapshot|event|heartbeat",
+  "connectionId": "uuid",
+  "timestamp": "ISO 8601 datetime",
+  "payload": {
+    // Type-specific content
+  }
+}
+```
+
+### Snapshot Messages (`type: "snapshot"`)
+
+Sent when the Snapshot Store has new normalized data for a tier. Payload contains the snapshot model:
+
+```json
+{
+  "type": "snapshot",
+  "connectionId": "123e4567-e89b-12d3-a456-426614174000",
+  "timestamp": "2026-08-19T10:30:00.000Z",
+  "payload": {
+    "tier": "T1",
+    "data": {
+      // Normalized snapshot model (ClusterHealthSnapshot, NodeStatsSnapshot, etc.)
+      // Same structure as stored in SnapshotStore
+    },
+    "snapshotId": "snap-abc123",
+    "collectedAt": "2026-08-19T10:29:58.000Z"
+  }
+}
+```
+
+### Event Messages (`type: "event"`)
+
+Sent for significant state changes that don't fit the snapshot model:
+
+```json
+{
+  "type": "event",
+  "connectionId": "123e4567-e89b-12d3-a456-426614174000",
+  "timestamp": "2026-08-19T10:30:00.000Z",
+  "payload": {
+    "eventType": "connectionStatus|incidentDetected|incidentCleared|modeChanged",
+    "data": {
+      // Event-specific data
+    }
+  }
+}
+```
+
+**Event Types:**
+- `connectionStatus`: { status: "ACTIVE|FAILED|RECOVERING", error: string|null }
+- `incidentDetected`: { trigger: "healthRed|shardAllocFailure|highRejections", details: object }
+- `incidentCleared`: { previousTrigger: string, durationMs: number }
+- `modeChanged`: { from: "NORMAL|ADAPTIVE", to: "NORMAL|ADAPTIVE", reason: string }
+
+### Heartbeat Messages (`type: "heartbeat"`)
+
+Sent periodically to maintain connection awareness and detect network partitions:
+
+```json
+{
+  "type": "heartbeat",
+  "connectionId": "123e4567-e89b-12d3-a456-426614174000",
+  "timestamp": "2026-08-19T10:30:00.000Z",
+  "payload": {
+    "intervalMs": 30000,
+    "serverTime": "2026-08-19T10:30:00.000Z"
+  }
+}
+```
+
+**Heartbeat interval**: 30 seconds (configurable). Absence of heartbeat for 2× interval indicates connection issues.
+
+## Replay Mechanism for Disconnected Clients
+
+When a client reconnects after a network interruption, it should be able to receive recent missed snapshots to maintain UI continuity.
+
+### Implementation Approach
+
+1. **Client sends Last-Event-ID**: On SSE reconnect, browsers automatically include `Last-Event-ID` header with the ID of the last message received.
+2. **Server maintains recent history**: The streaming layer keeps a rolling buffer of the last N messages (configurable, default 100).
+3. **On reconnect**: Server replays messages from the buffer that occurred after the Last-Event-ID.
+4. **Fallback to full resync**: If Last-Event-ID is too old (buffer overflowed), server sends a special `fullResyncRequired` event.
+
+### Message ID Strategy
+
+Each message gets a monotonically increasing integer ID (not UUID) for efficient comparison:
+- First message: ID 1
+- Each subsequent message: ID + 1
+- IDs reset on server restart (acceptable for monitoring use case)
+
+**SSE Format Example:**
+```
+id: 42
+event: snapshot
+data: {"type":"snapshot","connectionId":"...","timestamp":"...","payload":{...}}
+
+id: 43
+event: heartbeat
+data: {"type":"heartbeat","connectionId":"...","timestamp":"...","payload":{...}}
+```
+
+### Replay Flow
+
+1. Client connects, no `Last-Event-ID` → receives live stream only
+2. Client disconnects after receiving message ID 100
+3. Client reconnects with `Last-Event-ID: 100`
+4. Server checks replay buffer: finds messages 101-150
+5. Server sends messages 101-150, then continues with live stream
+6. If client had `Last-Event-ID: 50` but buffer only has 101-150 → server sends `fullResyncRequired` event
+
+## Backpressure Handling
+
+To prevent overwhelming slow clients or causing memory exhaustion on the server:
+
+### Client-Side Indicators
+1. **HTTP 503 Service Unavailable**: Returned if client consumes too slowly and server's send buffer is full
+2. **Connection termination**: Server closes connection if client falls too far behind (configurable threshold)
+3. **Retry-After header**: Included with 503 responses to suggest reconnect delay
+
+### Server-Side Protections
+1. **Bounded replay buffer**: Fixed size (default 100 messages) prevents unlimited memory growth
+2. **Send timeout**: Maximum time to wait for client to acknowledge receipt (default 5s)
+3. **Connection limits**: Maximum concurrent streaming connections per IP/user (configurable)
+4. **Message rate limiting**: Optional per-connection msg/sec cap to prevent abuse
+
+### Adaptive Interaction
+During incident mode (ADR-005), when collection frequency increases:
+- Streaming layer does **not** automatically increase message rate
+- Message rate is capped by the slowest connected client to prevent cascading failures
+- UI may choose to drop non-critical snapshots if overwhelmed (client-side adaptation)
+
+## Alignment with ADR-005 Tiered Cadence
+
+The streaming layer pushes whatever the Collector produces, at the exact cadence defined by ADR-005:
+
+| ADR-005 Tier | Cadence | Typical Snapshot Size | Streaming Frequency |
+|--------------|---------|----------------------|---------------------|
+| **T1 — Live** | ~5 seconds | ClusterHealthSnapshot (~1KB) | Every 5s (adaptive: 2s-5s during incidents) |
+| **T2 — Trending** | ~10-15 seconds | NodeStatsSnapshot (~5KB) | Every 10-15s (adaptive: 5s-15s) |
+| **T3 — Deep** | ~30-60 seconds | IndexStatsSnapshot (~10KB) | Every 30-60s |
+| **T4 — Diagnostic** | ~5 minutes | MappingSnapshot (~50KB) | Every 5m |
+| **T5 — On-demand** | User-triggered | Variable | On request only |
+
+### Message Volume Estimates
+- **Baseline (all connections healthy)**: ~12 messages/minute/connection
+- **Incident mode (T1/T2 accelerated)**: Up to ~30 messages/minute/connection
+- **Payload size**: Average ~3KB/message (mostly JSON text)
+- **Bandwidth**: ~36 KB/minute/connection baseline, up to 90 KB/minute during incidents
+
+This is easily handled by standard broadband connections and well within typical enterprise network capacities.
+
+## Security Considerations
+
+### Authentication and Authorization
+1. **Same auth as REST API**: Streaming endpoints require the same authentication (Bearer token, basic auth, or client cert) as the guardian API
+2. **Connection-scoped**: Clients can only subscribe to snapshots for connections they are authorized to access
+3. **Token validation**: Performed at HTTP handshake (SSE) or WebSocket handshake stage
+4. **Least privilege**: Read-only monitoring tokens cannot access write/provisioning endpoints
+
+### Transport Security
+1. **TLS required**: All streaming must occur over wss:// or https:// (never ws:// or http://)
+2. **Certificate validation**: Strict certificate checking enabled by default (configurable for air-gapped environments)
+3. **HSTS**: Recommended for production deployments
+
+### Data Protection
+1. **No secrets in snapshots**: Normalized models exclude credentials, keys, or sensitive configuration values
+2. **Audit logging**: All streaming connections logged at INFO level (connection ID, timestamp, user agent)
+3. **No persistence**: Replay buffer is in-memory only; not written to disk or logs
+
+## Message Routing and Fan-out Architecture
+
+### Core Components
+```
+[Connection Manager] --> [Collector Orchestrator] --> [Snapshot Store]
+                                                                  |
+                                                                  v
+                                                      [Streaming Layer] --> [Electron Clients]
+                                                                  |
+                                                                  v
+                                                       [Doctor Rules] (read-only access)
+                                                                  |
+                                                                  v
+                                                [Cost Optimizer] (T3/T4 subscription)
+```
+
+### Fan-out Strategy
+1. **Snapshot Store is the source of truth**: All consumers (streaming, Doctor, Optimizer) read from the same normalized snapshots
+2. **Streaming layer subscribes to Snapshot Store**: Gets notified when new snapshots arrive for any tier
+3. **Doctor rules pull on evaluation cycle**: Read-only access to latest snapshots (no impact on streaming)
+4. **Cost Optimizer subscribes to T3/T4**: Similar to streaming but optimized for batch analysis
+
+This avoids duplicating normalization work and ensures all consumers see identical data.
+
+## Interface Contracts
+
+### From Collector (Snapshot Store)
+```python
+# Callback registered by streaming layer
+def on_new_snapshot(tier: str, snapshot: NormalizedSnapshot) -> None:
+    """Called when Snapshot Store receives new snapshot."""
+    # Format as SSE/WebSocket message and enqueue for delivery
+```
+
+### To Electron Renderer
+Messages received via SSE/WebSocket should be dispatched to the renderer via the restricted IPC boundary (T9 design). The renderer should:
+1. Parse and validate message schema
+2. Route snapshots to appropriate UI components (health panel, node table, etc.)
+3. Handle connection status events (show reconnecting UI, etc.)
+4. Process incident events (trigger notifications, change dashboard colors)
+5. Maintain optional local cache for offline charting
+
+### Configuration Options
+Streaming layer should be configurable via:
+- `streaming.enabled`: boolean (default true)
+- `streaming.protocol`: "sse" | "websocket" | "both" (default "sse")
+- `streaming.heartbeatIntervalMs`: integer (default 30000)
+- `streaming.replayBufferSize`: integer (default 100)
+- `streaming.sendTimeoutMs`: integer (default 5000)
+- `streaming.maxConnectionsPerIP`: integer (default 10)
+- `streaming.messageRateLimit`: msgs/sec per connection (default 20, 0 = disabled)
+
+## Open Questions & Decisions Needed
+
+1. **T15 IPC Boundary**: Confirm how renderer receives messages from main process (IPC channel design).
+2. **Exact Message Schema**: Align with guardian/models/ snapshot Pydantic classes once T7 data-model.md is available.
+3. **Replay Buffer Persistence**: Should replay buffer survive server restarts? (Current design: no - acceptable for monitoring).
+4. **Multiple Streaming Endpoints**: Separate endpoints for SSE (/api/stream/sse) and WebSocket (/api/stream/ws) or single endpoint with upgrade?
+5. **Compression**: Should we implement HTTP compression (gzip) for SSE messages? (Recommended for production).
+
+## Definition of Done
+
+- [x] Design document written and placed at `docs/architecture/live-monitoring.md`
+- [x] Covers SSE vs WebSocket decision with justification
+- [x] Defines message format (snapshot/event/heartbeat) and schema
+- [x] Describes replay mechanism for disconnected clients
+- [x] Addresses backpressure handling (client and server side)
+- [x] Aligns with ADR-005 tiered cadence (T1-T5 frequencies and payloads)
+- [x] Includes security considerations (auth, TLS, data protection)
+- [x] Describes interface contracts with Collector and Electron
+- [x] Lists open questions and decisions needed
+- [ ] Pending: Review by T15 (Jim) and T14 (Angela) for alignment
+- [ ] Pending: Validation against T7 data-model.md when available
+- [ ] Consumed by T15 (Electron + React dashboard scaffold)
+
+## References
+
+- ADR-005: Tiered Adaptive Collection Cadence with Normalized Internal Models
+- SOP §4.2: Collection strategy
+- SOP §3.1: Direct connection to OpenSearch (authoritative APIs)
+- MDN Web Docs: Server-Sent Events
+- RFC 6455: The WebSocket Protocol
+- WHATWG: Server-sent events

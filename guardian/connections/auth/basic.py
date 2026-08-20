@@ -13,9 +13,7 @@ from typing import Any
 
 from guardian.connections.keychain import KeychainStore
 from guardian.core_types.connection_models import (
-    ConnectionMode,
     ConnectionProfile,
-    ConnectionStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,7 +26,7 @@ class BasicCredentials:
     enough to configure the ``opensearch-py`` client.
     """
 
-    __slots__ = ("username", "password")
+    __slots__ = ("password", "username")
 
     def __init__(self, username: str, password: str) -> None:
         self.username = username

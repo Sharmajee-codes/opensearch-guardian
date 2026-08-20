@@ -7,9 +7,8 @@ generating before/after snapshots for review.
 import hashlib
 import json
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-from .classification import SafetyClassification
+from datetime import UTC, datetime
+from typing import Any
 
 
 @dataclass
@@ -17,13 +16,13 @@ class DiffResult:
     """Result of a dry-run diff operation."""
     operation_type: str
     target_resource: str
-    before_snapshot: Dict[str, Any]
-    after_snapshot: Dict[str, Any]
-    changes_summary: Dict[str, Any]
+    before_snapshot: dict[str, Any]
+    after_snapshot: dict[str, Any]
+    changes_summary: dict[str, Any]
     risk_assessment: str
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     diff_id: str = field(default_factory=lambda: hashlib.sha256(
-        f"{datetime.utcnow().isoformat()}".encode()
+        f"{datetime.now(UTC).isoformat()}".encode()
     ).hexdigest()[:16])
 
 
@@ -42,8 +41,8 @@ class DryRunEngine:
         self,
         operation_type: str,
         target_resource: str,
-        parameters: Dict[str, Any],
-        current_state: Dict[str, Any]
+        parameters: dict[str, Any],
+        current_state: dict[str, Any]
     ) -> DiffResult:
         """
         Execute a dry-run of a mutation operation and generate a diff.
@@ -85,20 +84,20 @@ class DryRunEngine:
             risk_assessment=risk_assessment
         )
 
-    async def _capture_snapshot(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def _capture_snapshot(self, state: dict[str, Any]) -> dict[str, Any]:
         """
         Capture a point-in-time snapshot of the system state.
         In practice, this would collect from OpenSearch, Docker, etc.
         """
         # Normalize and hash the state for immutability
         snapshot = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(UTC).isoformat() + "Z",
             "state_hash": self._compute_state_hash(state),
             "components": state
         }
         return snapshot
 
-    def _compute_state_hash(self, state: Dict[str, Any]) -> str:
+    def _compute_state_hash(self, state: dict[str, Any]) -> str:
         """Compute SHA-256 hash of state for immutability verification."""
         state_json = json.dumps(state, sort_keys=True, default=str)
         return hashlib.sha256(state_json.encode()).hexdigest()
@@ -107,16 +106,17 @@ class DryRunEngine:
         self,
         operation_type: str,
         target_resource: str,
-        parameters: Dict[str, Any],
-        current_state: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        parameters: dict[str, Any],
+        current_state: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Simulate an operation on a copy of the current state.
         Returns the predicted state after the operation.
         """
         # This is a simplified simulation - in practice would involve
         # calling actual APIs with dry_run=true or using mocks
-        after_state = current_state.copy()
+        import copy
+        after_state = copy.deepcopy(current_state)
 
         # Apply operation-specific transformations
         if operation_type == "node-add":
@@ -125,7 +125,7 @@ class DryRunEngine:
                 "role": parameters.get("role", "data"),
                 "status": "joining",
                 "ip_address": parameters.get("ip_address"),
-                "added_at": datetime.utcnow().isoformat() + "Z"
+                "added_at": datetime.now(UTC).isoformat() + "Z"
             })
             # Update cluster stats
             after_state["cluster_stats"] = after_state.get("cluster_stats", {})
@@ -151,7 +151,7 @@ class DryRunEngine:
                 "settings": parameters.get("settings", {}),
                 "mappings": parameters.get("mappings", {}),
                 "status": "created",
-                "created_at": datetime.utcnow().isoformat() + "Z",
+                "created_at": datetime.now(UTC).isoformat() + "Z",
                 "shards": parameters.get("number_of_shards", 1),
                 "replicas": parameters.get("number_of_replicas", 1)
             })
@@ -170,7 +170,7 @@ class DryRunEngine:
             for idx in indices:
                 if idx.get("index_name") == target_resource:
                     idx["settings"].update(parameters.get("settings", {}))
-                    idx["updated_at"] = datetime.utcnow().isoformat() + "Z"
+                    idx["updated_at"] = datetime.now(UTC).isoformat() + "Z"
                     break
 
         elif operation_type == "docker-compose-up":
@@ -183,7 +183,7 @@ class DryRunEngine:
                 "ports": service_config.get("ports", []),
                 "environment": service_config.get("environment", {}),
                 "status": "starting",
-                "deployed_at": datetime.utcnow().isoformat() + "Z"
+                "deployed_at": datetime.now(UTC).isoformat() + "Z"
             })
             after_state["docker_services"] = services
 
@@ -200,7 +200,7 @@ class DryRunEngine:
             for dep in deployments:
                 if dep.get("name") == target_resource:
                     dep["replicas"] = dep.get("replicas", 1) + parameters.get("replica_count", 1)
-                    dep["scaled_at"] = datetime.utcnow().isoformat() + "Z"
+                    dep["scaled_at"] = datetime.now(UTC).isoformat() + "Z"
                     break
             else:
                 # New deployment
@@ -209,7 +209,7 @@ class DryRunEngine:
                     "replicas": parameters.get("replica_count", 1),
                     "image": parameters.get("image"),
                     "status": "scaling",
-                    "scaled_at": datetime.utcnow().isoformat() + "Z"
+                    "scaled_at": datetime.now(UTC).isoformat() + "Z"
                 })
             after_state["k8s_deployments"] = deployments
 
@@ -222,7 +222,7 @@ class DryRunEngine:
                     scale_down_by = parameters.get("replica_count", 1)
                     new_replicas = max(0, current_replicas - scale_down_by)
                     dep["replicas"] = new_replicas
-                    dep["scaled_at"] = datetime.utcnow().isoformat() + "Z"
+                    dep["scaled_at"] = datetime.now(UTC).isoformat() + "Z"
                     if new_replicas == 0:
                         # Mark for removal
                         dep["status"] = "terminating"
@@ -233,7 +233,7 @@ class DryRunEngine:
         after_state["last_operation"] = {
             "type": operation_type,
             "target": target_resource,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(UTC).isoformat() + "Z",
             "parameters": parameters,
             "dry_run": True
         }
@@ -242,14 +242,14 @@ class DryRunEngine:
 
     def _generate_changes_summary(
         self,
-        before: Dict[str, Any],
-        after: Dict[str, Any],
+        before: dict[str, Any],
+        after: dict[str, Any],
         operation_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate a human-readable summary of changes."""
         summary = {
             "operation": operation_type,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(UTC).isoformat() + "Z",
             "changes": []
         }
 
@@ -294,8 +294,8 @@ class DryRunEngine:
     def _assess_risk(
         self,
         operation_type: str,
-        changes_summary: Dict[str, Any],
-        parameters: Dict[str, Any]
+        changes_summary: dict[str, Any],
+        parameters: dict[str, Any]
     ) -> str:
         """Assess the risk level of the simulated operation."""
         # High-risk operations

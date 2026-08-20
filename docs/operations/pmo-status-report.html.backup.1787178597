@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PMO Status Dashboard - OpenSearch Guardian</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f6f8; color: #1a1a2e; line-height: 1.5; }
+        
+        /* Header */
+        .header { background: linear-gradient(135deg, #1e3a5f 0%, #0f1b2e 100%); color: white; padding: 20px 32px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header-content { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .header h1 { font-size: 1.75rem; font-weight: 600; }
+        .header-meta { display: flex; gap: 24px; font-size: 0.875rem; opacity: 0.85; }
+        .header-meta span { display: flex; align-items: center; gap: 6px; }
+        .status-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; margin-right: 6px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        /* Filters Bar */
+        .filters-bar { background: white; border-bottom: 1px solid #e2e8f0; padding: 16px 32px; position: sticky; top: 88px; z-index: 90; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+        .filter-group { display: flex; align-items: center; gap: 8px; }
+        .filter-group label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; }
+        .filter-select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; background: white; font-size: 0.875rem; color: #1e293b; cursor: pointer; min-width: 180px; transition: border-color 0.2s, box-shadow 0.2s; }
+        .filter-select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        .filter-search { flex: 1; min-width: 250px; }
+        .filter-search input { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.875rem; padding-left: 36px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center; }
+        .filter-search input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        .clear-filters { padding: 8px 16px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; font-weight: 500; color: #475569; cursor: pointer; transition: all 0.2s; }
+        .clear-filters:hover { background: #e2e8f0; }
+        
+        /* Main Content */
+        .main { max-width: 1400px; margin: 0 auto; padding: 24px 32px; }
+        
+        /* Stats Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: white; border-radius: 12px; padding: 20px 24px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 16px; transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .stat-icon.total { background: #dbeafe; color: #3b82f6; }
+        .stat-icon.progress { background: #fef3c7; color: #f59e0b; }
+        .stat-icon.done { background: #d1fae5; color: #10b981; }
+        .stat-icon.blocked { background: #fee2e2; color: #ef4444; }
+        .stat-info { display: flex; flex-direction: column; }
+        .stat-value { font-size: 1.75rem; font-weight: 700; color: #0f172a; line-height: 1; }
+        .stat-label { font-size: 0.75rem; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* Filters Applied Bar */
+        .active-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; padding: 12px 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .active-filters:empty { display: none; }
+        .filter-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #3b82f6; color: white; border-radius: 20px; font-size: 0.75rem; font-weight: 500; }
+        .filter-tag .remove { cursor: pointer; padding: 0 4px; opacity: 0.8; }
+        .filter-tag .remove:hover { opacity: 1; }
+        
+        /* Kanban Board */
+        .kanban-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        @media (max-width: 1200px) { .kanban-board { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .kanban-board { grid-template-columns: 1fr; } }
+        
+        .kanban-column { background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; min-height: 500px; }
+        .column-header { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .column-title { font-size: 0.875rem; font-weight: 600; color: #334155; display: flex; align-items: center; gap: 8px; }
+        .column-count { background: #e2e8f0; color: #475569; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+        .column-header.not-started { background: #fef3c7; border-bottom-color: #fde68a; }
+        .column-header.in-progress { background: #dbeafe; border-bottom-color: #bfdbfe; }
+        .column-header.review { background: #e0e7ff; border-bottom-color: #c7d2fe; }
+        .column-header.done { background: #d1fae5; border-bottom-color: #a7f3d0; }
+        .column-header.blocked { background: #fee2e2; border-bottom-color: #fecaca; }
+        
+        .task-list { padding: 12px; overflow-y: auto; flex: 1; }
+        .task-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: transform 0.15s, box-shadow 0.15s; cursor: pointer; }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .task-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .task-id { font-size: 0.7rem; font-weight: 700; color: #3b82f6; background: #dbeafe; padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+        .task-status { font-size: 0.65rem; font-weight: 600; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
+        .status-not-started { background: #fef3c7; color: #b45309; }
+        .status-in-progress { background: #dbeafe; color: #1e40af; }
+        .status-review { background: #e0e7ff; color: #3730a3; }
+        .status-done { background: #d1fae5; color: #065f46; }
+        .status-blocked { background: #fee2e2; color: #991b1b; }
+        .task-title { font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
+        .task-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.7rem; color: #64748b; }
+        .task-meta span { display: flex; align-items: center; gap: 4px; }
+        .assignee-badge { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 500; font-family: monospace; }
+        .reviewer-badge { background: #ede9fe; color: #5b21b6; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 500; font-family: monospace; }
+        .deps-badge { background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 500; font-family: monospace; }
+        
+        /* Empty State */
+        .empty-state { padding: 32px; text-align: center; color: #94a3b8; font-size: 0.875rem; }
+        
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 24px; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: white; border-radius: 16px; max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .modal-header { padding: 24px 24px 0; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .modal-title { font-size: 1.125rem; font-weight: 600; color: #1e293b; }
+        .modal-close { background: none; border: none; padding: 8px; color: #64748b; cursor: pointer; border-radius: 6px; transition: background 0.2s; }
+        .modal-close:hover { background: #f1f5f9; }
+        .modal-body { padding: 0 24px 24px; }
+        .detail-row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+        .detail-field { flex: 1; min-width: 200px; }
+        .detail-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 4px; }
+        .detail-value { font-size: 0.875rem; color: #1e293b; }
+        .detail-value.mono { font-family: monospace; font-size: 0.8125rem; background: #f8fafc; padding: 4px 8px; border-radius: 4px; }
+        .description-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-top: 16px; }
+        .description-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 8px; }
+        .description-text { font-size: 0.875rem; color: #334155; line-height: 1.6; white-space: pre-wrap; }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Documentation Panel */
+        .doc-panel { background: white; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px; overflow: hidden; }
+        .doc-panel-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 24px; }
+        .doc-panel-title { font-size: 1rem; font-weight: 600; display: block; }
+        .doc-panel-subtitle { font-size: 0.75rem; opacity: 0.85; }
+        .doc-panel-content { padding: 20px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .doc-section h4 { font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .doc-list { list-style: none; padding: 0; margin: 0; }
+        .doc-list li { margin-bottom: 8px; }
+        .doc-list a { font-size: 0.8rem; color: #3b82f6; text-decoration: none; padding: 4px 8px; border-radius: 4px; display: block; transition: background 0.2s, color 0.2s; }
+        .doc-list a:hover { background: #dbeafe; color: #1d4ed8; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1>PMO Status Dashboard</h1>
+            <div class="header-meta">
+                <span><span class="status-indicator"></span>Live - Implementation Phase Active</span>
+                <span>Project: <strong>OpenSearch Guardian</strong></span>
+                <span>Generated: <strong id="timestamp"></strong></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Filters Bar -->
+    <div class="filters-bar">
+        <div class="filter-group filter-search">
+            <input type="text" id="searchInput" placeholder="Search tasks by ID, title, assignee..." aria-label="Search tasks">
+        </div>
+        <div class="filter-group">
+            <label for="statusFilter">Status</label>
+            <select id="statusFilter" class="filter-select">
+                <option value="">All Statuses</option>
+                <option value="NOT STARTED">Not Started</option>
+                <option value="IN PROGRESS">In Progress</option>
+                <option value="REVIEW">In Review</option>
+                <option value="DONE">Done</option>
+                <option value="BLOCKED">Blocked</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="assigneeFilter">Assignee</label>
+            <select id="assigneeFilter" class="filter-select">
+                <option value="">All Assignees</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="workstreamFilter">Workstream</label>
+            <select id="workstreamFilter" class="filter-select">
+                <option value="">All Workstreams</option>
+            </select>
+        </div>
+        <button class="clear-filters" id="clearFilters">Clear Filters</button>
+    </div>
+
+    <!-- Active Filters Display -->
+    <div class="active-filters" id="activeFilters" style="max-width: 1400px; margin: 16px 32px 0;"></div>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon total"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg></div>
+                <div class="stat-info"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Total Tasks</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon progress"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+                <div class="stat-info"><div class="stat-value" id="statInProgress">0</div><div class="stat-label">In Progress</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon done"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+                <div class="stat-info"><div class="stat-value" id="statDone">0</div><div class="stat-label">Done</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon blocked"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+                <div class="stat-info"><div class="stat-value" id="statBlocked">0</div><div class="stat-label">Blocked</div></div>
+            </div>
+        </div>
+
+        <!-- Documentation Panel -->
+        <div class="doc-panel" id="docPanel">
+            <div class="doc-panel-header">
+                <span class="doc-panel-title">📚 Documentation Index</span>
+                <span class="doc-panel-subtitle">All project documentation organized by category</span>
+            </div>
+            <div class="doc-panel-content">
+                <div class="doc-section">
+                    <h4 class="doc-section-title">🏛️ Architecture & ADRs</h4>
+                    <ul class="doc-list">
+                        <li><a href="../adr/ADR-001.md">ADR-001: Project Structure</a></li>
+                        <li><a href="../adr/ADR-002.md">ADR-002: Technology Stack</a></li>
+                        <li><a href="../adr/ADR-008.md">ADR-008: Architecture Migration</a></li>
+                        <li><a href="../adr/ADR-009.md">ADR-009: Plugin Architecture</a></li>
+                        <li><a href="../adr/ADR-011.md">ADR-011: Release & Distribution</a></li>
+                        <li><a href="../architecture/desktop-architecture.md">Desktop Architecture</a></li>
+                        <li><a href="../architecture/data-model.md">Data Model</a></li>
+                        <li><a href="../architecture/doctor-rules.md">Doctor Rules Engine</a></li>
+                        <li><a href="../architecture/security-safety-engine.md">Security & Safety Engine</a></li>
+                        <li><a href="../architecture/migration-report.md">Migration Report</a></li>
+                    </ul>
+                </div>
+                <div class="doc-section">
+                    <h4 class="doc-section-title">⚙️ Implementation Guides</h4>
+                    <ul class="doc-list">
+                        <li><a href="../plugins/backend-plugin-development.md">Backend Plugin Development Guide</a></li>
+                        <li><a href="../plugins/frontend-plugin-development.md">Frontend Plugin Development Guide</a></li>
+                        <li><a href="../plugins/migration-guide.md">Migration Guide</a></li>
+                        <li><a href="../research/opensearch-dashboards-plugin.md">Frontend Plugin Research</a></li>
+                        <li><a href="../research/opensearch-backend-plugin.md">OpenSearch Backend Plugin</a></li>
+                        <li><a href="../research/opensearch-security-integration.md">Security Integration</a></li>
+                        <li><a href="../research/plugin-packaging-distribution.md">Plugin Packaging & Distribution</a></li>
+                    </ul>
+                </div>
+                <div class="doc-section">
+                    <h4 class="doc-section-title">🔒 Security & Safety</h4>
+                    <ul class="doc-list">
+                        <li><a href="../architecture/security-safety-engine.md">Security Engine Architecture</a></li>
+                        <li><a href="../research/opensearch-security-integration.md">OpenSearch Security Integration</a></li>
+                        <li><a href="../architecture/research/licensing-stack.md">Licensing Stack & Compliance</a></li>
+                    </ul>
+                </div>
+                <div class="doc-section">
+                    <h4 class="doc-section-title">🚀 Release & Operations</h4>
+                    <ul class="doc-list">
+                        <li><a href="../operations/release.md">Release Hardening Guide</a></li>
+                        <li><a href="../operations/versioning.md">Versioning Strategy</a></li>
+                        <li><a href="../operations/doctor-runbook.md">Doctor Runbook</a></li>
+                        <li><a href="../operations/acceptance-criteria.md">Acceptance Criteria</a></li>
+                        <li><a href="../operations/admin-guide.md">Admin Guide</a></li>
+                        <li><a href="../operations/user-guide.md">User Guide</a></li>
+                        <li><a href="../operations/quickstart.md">Quickstart Guide</a></li>
+                        <li><a href="../plugins/release-automation.md">Release Automation Guide</a></li>
+                        <li><a href="../operations/credentials.md">CI/CD Credentials & Secrets</a></li>
+                        <li><a href="../API.md">API Documentation</a></li>
+                    </ul>
+                </div>
+                <div class="doc-section">
+                    <h4 class="doc-section-title">📋 PMO & Process</h4>
+                    <ul class="doc-list">
+                        <li><a href="../operations/pmo-process.md">PMO Process</a></li>
+                        <li><a href="../operations/roadmap.md">Roadmap</a></li>
+                        <li><a href="../SOP.md">Standard Operating Procedures</a></li>
+                        <li><a href="../VISION.md">Project Vision</a></li>
+                        <li><a href="documentation-index.md">Full Documentation Index</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Filters Display -->
+        <div class="active-filters" id="activeFilters"></div>
+
+        <!-- Kanban Board -->
+        <div class="kanban-board">
+            <div class="kanban-column" data-status="NOT STARTED">
+                <div class="column-header not-started">
+                    <span class="column-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>Not Started</span>
+                    <span class="column-count" id="countNotStarted">0</span>
+                </div>
+                <div class="task-list" id="listNotStarted"><div class="empty-state">No tasks</div></div>
+            </div>
+            <div class="kanban-column" data-status="IN PROGRESS">
+                <div class="column-header in-progress">
+                    <span class="column-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v6l4 2"/></svg>In Progress</span>
+                    <span class="column-count" id="countInProgress">0</span>
+                </div>
+                <div class="task-list" id="listInProgress"><div class="empty-state">No tasks</div></div>
+            </div>
+            <div class="kanban-column" data-status="REVIEW">
+                <div class="column-header review">
+                    <span class="column-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7"/></svg>In Review</span>
+                    <span class="column-count" id="countReview">0</span>
+                </div>
+                <div class="task-list" id="listReview"><div class="empty-state">No tasks</div></div>
+            </div>
+            <div class="kanban-column" data-status="DONE">
+                <div class="column-header done">
+                    <span class="column-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Done</span>
+                    <span class="column-count" id="countDone">0</span>
+                </div>
+                <div class="task-list" id="listDone"><div class="empty-state">No tasks</div></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Task Detail Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Task Details</div>
+                <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // Task Data
+        const tasks = [{"id":"T58","title":"PMO: Weekly Status Report Consolidation","status":"IN PROGRESS","assignee":"kelly-mt0d89bk","reviewer":"god","deps":[],"phase":18,"note":"Gather requirements/directions from Michael (God) via his communications, distribute them as respected assignments to appropriate agents, collect status updates from all team members (Jim, Pam, Dwight, Bharti, Angela, Meredith, Andy, Phyllis, Stanley), and maintain a comprehensive HTML report tracking: requirements received from God, assignments distributed, completed tasks, in-progress work, blockers, and upcoming priorities. The report should be saved as an HTML file in /Users/sharmajee/Developer/projects/OpensearchGuardian/opensearch-guardian/docs/operations/pmo-status-report.html and updated regularly.","workstream":"PMO","startedAt":"2026-08-20T00:00:00.000Z"},{"id":"T59","title":"Backend Plugin SPI Implementation","status":"IN PROGRESS","assignee":"kevin-mszwzzlo","reviewer":"phyllis-mt02hwxa","deps":["T52"],"phase":19,"note":"Implement OpenSearch plugin SPI entry point, plugin descriptor, and core plugin lifecycle management","workstream":"Backend Plugin","startedAt":"2026-08-19T18:50:24.282927+00:00"},{"id":"T60","title":"Backend Plugin Collection Services","status":"IN PROGRESS","assignee":"kevin-mszwzzlo","reviewer":"phyllis-mt02hwxa","deps":["T59"],"phase":19,"note":"Implement collector services, snapshot store, and data collection pipeline as OpenSearch plugin components","workstream":"Backend Plugin","startedAt":"2026-08-19T18:50:24.283130+00:00"},{"id":"T61","title":"Security Plugin Integration","status":"DONE","assignee":"angela-mszx0wm5","reviewer":"phyllis-mt02hwxa","deps":["T52"],"phase":19,"note":"Integrate with OpenSearch Security plugin for authentication, authorization, and RBAC","workstream":"Security","startedAt":"2026-08-19T18:50:24.283133+00:00"},{"id":"T62","title":"RBAC Mapping and Permission Enforcement","status":"DONE","assignee":"angela-mszx0wm5","reviewer":"phyllis-mt02hwxa","deps":["T61"],"phase":19,"note":"Implement RBAC mapping, custom permissions, and permission enforcement for Guardian operations","workstream":"Security","startedAt":"2026-08-19T18:50:24.283134+00:00"},{"id":"T63","title":"Plugin Development Guides","status":"DONE","assignee":"angela-mszx0wm5","reviewer":"phyllis-mt02hwxa","deps":["T52"],"phase":19,"note":"Create plugin development documentation, API references, and developer guides","workstream":"Documentation","startedAt":"2026-08-19T18:50:24.283136+00:00"},{"id":"T64","title":"Release Automation and Signing","status":"DONE","assignee":"pam-mszwz30z","reviewer":"phyllis-mt02hwxa","deps":["T63"],"phase":19,"note":"Implement CI/CD pipeline for plugin builds, SBOM generation, artifact signing, and release automation","workstream":"Release","startedAt":"2026-08-19T18:50:24.283137+00:00"},{"id":"T65","title":"Provisioning Engine Plugin Adaptation","status":"COMPLETED","assignee":"dwight-mszwzfte","reviewer":"phyllis-mt02hwxa","deps":["T52"],"phase":19,"note":"Adapt provisioning engine to run as OpenSearch plugin with preflight-apply-verify-rebalance-audit workflow","workstream":"Provisioning","startedAt":"2026-08-19T18:50:24.283138+00:00"},{"id":"T66","title":"Doctor Rules Plugin Integration","status":"COMPLETED","assignee":"dwight-mszwzfte","reviewer":"phyllis-mt02hwxa","deps":["T65"],"phase":19,"note":"Integrate Doctor rules engine as OpenSearch plugin actions and REST endpoints","workstream":"Provisioning","startedAt":"2026-08-19T18:50:24.283139+00:00"},{"id":"T67","title":"Frontend Plugin Scaffold and Manifest","status":"DONE","assignee":"meredith-mt02f5qz","reviewer":"phyllis-mt02hwxa","deps":["T52"],"phase":19,"note":"Create OpenSearch Dashboards plugin scaffold, manifest, and core plugin structure","workstream":"Frontend Plugin","startedAt":"2026-08-19T18:50:24.283140+00:00"},{"id":"T68","title":"Frontend-Backend Communication","status":"DONE","assignee":"meredith-mt02f5qz","reviewer":"phyllis-mt02hwxa","deps":["T67","T59"],"phase":19,"note":"Implement Dashboards plugin communication with backend plugin REST endpoints","workstream":"Frontend Plugin","startedAt":"2026-08-19T18:50:24.283142+00:00"},{"id":"T69","title":"Backend Plugin Unit Test Strategy","status":"IN PROGRESS","assignee":"jim-mszwyrge","reviewer":"phyllis-mt02hwxa","deps":["T59"],"phase":19,"note":"Design and implement unit test strategy for backend plugin components","workstream":"Testing","startedAt":"2026-08-19T18:50:24.283143+00:00"},{"id":"T70","title":"Frontend Plugin Integration Tests","status":"IN PROGRESS","assignee":"jim-mszwyrge","reviewer":"phyllis-mt02hwxa","deps":["T67"],"phase":19,"note":"Design and implement integration tests for Dashboards plugin","workstream":"Testing","startedAt":"2026-08-19T18:50:24.283144+00:00"},{"id":"T71","title":"Optimizer and Capacity Logic Validation","status":"DONE","assignee":"stanley-mt02ls7u","reviewer":"phyllis-mt02hwxa","deps":["T52"],"phase":19,"note":"Validate optimizer and capacity planning logic correctness in plugin context","workstream":"Shared Logic","startedAt":"2026-08-19T18:50:24.283145+00:00"},{"id":"T72","title":"Safety Classification Validation","status":"DONE","assignee":"stanley-mt02ls7u","reviewer":"phyllis-mt02hwxa","deps":["T71"],"phase":19,"note":"Validate safety classification and operation validation logic in plugin context","workstream":"Shared Logic","startedAt":"2026-08-19T18:50:24.283146+00:00"},{"id":"T73","title":"UI Component Implementation","status":"IN PROGRESS","assignee":"andy-mt02hg1j","reviewer":"phyllis-mt02hwxa","deps":["T67"],"phase":19,"note":"Implement Dashboards plugin UI components using EUI library; also responsible for QA","workstream":"UI/Visualization","startedAt":"2026-08-19T18:50:24.283147+00:00"},{"id":"T74","title":"Visualization Integration","status":"IN PROGRESS","assignee":"andy-mt02hg1j","reviewer":"phyllis-mt02hwxa","deps":["T73"],"phase":19,"note":"Integrate visualizations (charts, dashboards) with backend plugin data APIs; also responsible for QA","workstream":"UI/Visualization","startedAt":"2026-08-19T18:50:24.283148+00:00"},{"id":"T75","title":"Frontend Plugin Integration with Backend (Continued)","status":"IN PROGRESS","assignee":"meredith-mt02f5qz","reviewer":"phyllis-mt02hwxa","deps":["T67"],"phase":19,"note":"Continue frontend plugin integration with backend plugin services, implement saved objects, visualize backend data, enhance UI components with EUI library, ensure seamless communication between frontend and backend plugins.","workstream":"Frontend Plugin","startedAt":"2026-08-20T00:00:00.000Z"}];
+        
+        // Peer Review Comments
+        const peerReviewComments = [];
+
+        // Workstream mapping
+        const workstreams = {
+            "PMO": { color: "#8b5cf6", icon: "📊" },
+            "Backend Plugin": { color: "#3b82f6", icon: "⚙️" },
+            "Security": { color: "#ef4444", icon: "🔒" },
+            "Documentation": { color: "#06b6d4", icon: "📚" },
+            "Release": { color: "#8b5cf6", icon: "🚀" },
+            "Provisioning": { color: "#f59e0b", icon: "🐳" },
+            "Frontend Plugin": { color: "#10b981", icon: "🖥️" },
+            "Testing": { color: "#6366f1", icon: "🧪" },
+            "Shared Logic": { color: "#ec4899", icon: "🔬" },
+            "UI/Visualization": { color: "#14b8a6", icon: "📈" }
+        };
+
+        const assigneeNames = {
+            "kelly-mt0d89bk": "Kelly (PMO)",
+            "kevin-mszwzzlo": "Kevin",
+            "angela-mszx0wm5": "Angela",
+            "pam-mszwz30z": "Pam",
+            "dwight-mszwzfte": "Dwight",
+            "meredith-mt02f5qz": "Meredith",
+            "jim-mszwyrge": "Jim",
+            "stanley-mt02ls7u": "Stanley",
+            "andy-mt02hg1j": "Andy",
+            "phyllis-mt02hwxa": "Phyllis"
+        };
+
+        // DOM Elements
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const assigneeFilter = document.getElementById('assigneeFilter');
+        const workstreamFilter = document.getElementById('workstreamFilter');
+        const clearFiltersBtn = document.getElementById('clearFilters');
+        const activeFiltersDiv = document.getElementById('activeFilters');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+        const modalClose = document.getElementById('modalClose');
+        const modalCloseBtn = document.getElementById('modalClose');
+
+        // State
+        let filters = { search: '', status: '', assignee: '', workstream: '' };
+
+        // Initialize
+        function init() {
+            updateTimestamp();
+            populateFilters();
+            renderAll();
+            renderPeerReviewActivity();
+            setupEventListeners();
+            setInterval(updateTimestamp, 60000);
+        }
+
+        function updateTimestamp() {
+            document.getElementById('timestamp').textContent = new Date().toLocaleString();
+            document.querySelectorAll('[id^="stat"]').forEach(el => el.textContent = '0');
+            updateStats();
+        }
+
+        function populateFilters() {
+            const assignees = [...new Set(tasks.map(t => t.assignee))].sort();
+            const workstreams = [...new Set(tasks.map(t => t.workstream))].sort();
+            
+            assigneeFilter.innerHTML = '<option value="">All Assignees</option>' + 
+                assignees.map(a => `<option value="${a}">${assigneeNames[a] || a}</option>`).join('');
+            workstreamFilter.innerHTML = '<option value="">All Workstreams</option>' + 
+                [...new Set(tasks.map(t => t.workstream))].sort().map(w => `<option value="${w}">${workstreams[w]?.icon || ''} ${w}</option>`).join('');
+        }
+
+        function setupEventListeners() {
+            searchInput.addEventListener('input', debounce(() => { filters.search = searchInput.value.toLowerCase(); renderAll(); }, 150));
+            statusFilter.addEventListener('change', () => { filters.status = statusFilter.value; renderAll(); updateActiveFilters(); });
+            assigneeFilter.addEventListener('change', () => { filters.assignee = assigneeFilter.value; renderAll(); updateActiveFilters(); });
+            workstreamFilter.addEventListener('change', () => { filters.workstream = workstreamFilter.value; renderAll(); updateActiveFilters(); });
+            clearFiltersBtn.addEventListener('click', clearAllFilters);
+            modalCloseBtn.addEventListener('click', closeModal);
+            modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+        }
+
+        function debounce(fn, delay) { let timeoutId; return (...args) => { clearTimeout(timeoutId); timeoutId = setTimeout(() => fn(...args), delay); }; }
+
+        function updateActiveFilters() {
+            activeFiltersDiv.innerHTML = '';
+            const active = [];
+            if (filters.search) active.push({ key: 'search', label: `Search: "${filters.search}"` });
+            if (filters.status) active.push({ key: 'status', label: `Status: ${filters.status}` });
+            if (filters.assignee) active.push({ key: 'assignee', label: `Assignee: ${assigneeNames[filters.assignee] || filters.assignee}` });
+            if (filters.workstream) active.push({ key: 'workstream', label: `Workstream: ${filters.workstream}` });
+            
+            if (active.length === 0) {
+                activeFiltersDiv.style.display = 'none';
+                return;
+            }
+            activeFiltersDiv.style.display = 'flex';
+            active.forEach(f => {
+                const tag = document.createElement('span');
+                tag.className = 'filter-tag';
+                tag.innerHTML = `${f.label} <span class="remove" data-key="${f.key}">&times;</span>`;
+                tag.querySelector('.remove').addEventListener('click', () => clearFilter(f.key));
+                activeFiltersDiv.appendChild(tag);
+            });
+            activeFiltersDiv.style.display = 'flex';
+        }
+
+        function clearFilter(key) {
+            if (key === 'search') searchInput.value = '';
+            if (key === 'status') statusFilter.value = '';
+            if (key === 'assignee') assigneeFilter.value = '';
+            if (key === 'workstream') workstreamFilter.value = '';
+            filters[key] = '';
+            renderAll();
+            renderPeerReviewActivity();
+            updateActiveFilters();
+        }
+
+        function clearAllFilters() {
+            searchInput.value = '';
+            statusFilter.value = '';
+            assigneeFilter.value = '';
+            workstreamFilter.value = '';
+            filters = { search: '', status: '', assignee: '', workstream: '' };
+            renderAll();
+            renderPeerReviewActivity();
+            updateActiveFilters();
+        }
+
+        function matchesFilters(task) {
+            if (filters.search && !(
+                task.id.toLowerCase().includes(filters.search) ||
+                task.title.toLowerCase().includes(filters.search) ||
+                (assigneeNames[task.assignee] || '').toLowerCase().includes(filters.search) ||
+                task.workstream.toLowerCase().includes(filters.search)
+            )) return false;
+            if (filters.status && task.status !== filters.status) return false;
+            if (filters.assignee && task.assignee !== filters.assignee) return false;
+            if (filters.workstream && task.workstream !== filters.workstream) return false;
+            return true;
+        }
+
+        function getFilteredTasks() {
+            return tasks.filter(matchesFilters);
+        }
+
+        function updateStats() {
+            const filtered = getFilteredTasks();
+            const total = filtered.length;
+            const inProgress = filtered.filter(t => t.status === 'IN PROGRESS').length;
+            const done = filtered.filter(t => t.status === 'DONE').length;
+            const blocked = filtered.filter(t => t.status === 'BLOCKED').length;
+            const notStarted = filtered.filter(t => t.status === 'NOT STARTED').length;
+            const review = filtered.filter(t => t.status === 'REVIEW').length;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statInProgress').textContent = inProgress;
+            document.getElementById('statDone').textContent = done;
+            document.getElementById('statBlocked').textContent = blocked;
+            
+            document.getElementById('countNotStarted').textContent = notStarted;
+            document.getElementById('countInProgress').textContent = inProgress;
+            document.getElementById('countReview').textContent = review;
+            document.getElementById('countDone').textContent = done;
+        }
+
+        function renderAll() {
+            updateStats();
+            renderKanban();
+        }
+
+        function renderKanban() {
+            const columns = {
+                'NOT STARTED': { list: document.getElementById('listNotStarted'), countEl: document.getElementById('countNotStarted') },
+                'IN PROGRESS': { list: document.getElementById('listInProgress'), countEl: document.getElementById('countInProgress') },
+                'REVIEW': { list: document.getElementById('listReview'), countEl: document.getElementById('countReview') },
+                'DONE': { list: document.getElementById('listDone'), countEl: document.getElementById('countDone') }
+            };
+
+            Object.values(columns).forEach(col => {
+                col.list.innerHTML = '<div class="empty-state">No tasks</div>';
+                col.countEl.textContent = '0';
+            });
+
+            const filtered = getFilteredTasks();
+            const counts = { 'NOT STARTED': 0, 'IN PROGRESS': 0, 'REVIEW': 0, 'DONE': 0 };
+
+            filtered.forEach(task => {
+                counts[task.status] = (counts[task.status] || 0) + 1;
+                const card = createTaskCard(task);
+                if (columns[task.status]) {
+                    columns[task.status].list.appendChild(card);
+                }
+            });
+
+            Object.entries(counts).forEach(([status, count]) => {
+                if (columns[status]) {
+                    columns[status].countEl.textContent = count;
+                    if (count === 0) {
+                        columns[status].list.innerHTML = '<div class="empty-state">No tasks</div>';
+                    }
+                }
+            });
+        }
+
+        function createTaskCard(task) {
+            const card = document.createElement('div');
+            card.className = 'task-card';
+            card.dataset.taskId = task.id;
+            
+            const workstreamInfo = workstreams[task.workstream] || { color: '#64748b', icon: '📦' };
+            
+            card.innerHTML = `
+                <div class="task-header">
+                    <span class="task-id">${task.id}</span>
+                    <span class="task-status status-${task.status.toLowerCase().replace(' ', '-')}">${task.status}</span>
+                </div>
+                <div class="task-title">${task.title}</div>
+                <div class="task-meta">
+                    <span class="assignee-badge">${assigneeNames[task.assignee] || task.assignee}</span>
+                    <span class="reviewer-badge">${assigneeNames[task.reviewer] || task.reviewer}</span>
+                    ${task.deps.length ? `<span class="deps-badge">↳ ${task.deps.join(', ')}</span>` : ''}
+                    <span style="background: ${workstreamInfo.color}20; color: ${workstreamInfo.color}; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 500;">${workstreamInfo.icon} ${task.workstream}</span>
+                </div>
+            `;
+            card.addEventListener('click', () => openModal(task));
+            return card;
+        }
+
+        function openModal(task) {
+            modalTitle.textContent = `${task.id}: ${task.title}`;
+            const workstreamInfo = workstreams[task.workstream] || { color: '#64748b', icon: '📦' };
+            modalBody.innerHTML = `
+                <div class="detail-row">
+                    <div class="detail-field">
+                        <div class="detail-label">Task ID</div>
+                        <div class="detail-value mono">${task.id}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value"><span class="task-status status-${task.status.toLowerCase().replace(' ', '-')}">${task.status}</span></div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Phase</div>
+                        <div class="detail-value">${task.phase || 'N/A'}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Workstream</div>
+                        <div class="detail-value" style="color: ${workstreamInfo.color};">${workstreamInfo.icon} ${task.workstream}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Assignee</div>
+                        <div class="detail-value">${assigneeNames[task.assignee] || task.assignee}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Reviewer</div>
+                        <div class="detail-value">${assigneeNames[task.reviewer] || task.reviewer}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Dependencies</div>
+                        <div class="detail-value">${task.deps.length ? task.deps.map(d => `<span class="deps-badge">${d}</span>`).join(' ') : 'None'}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Started</div>
+                        <div class="detail-value">${task.startedAt ? new Date(task.startedAt).toLocaleString() : 'Not started'}</div>
+                    </div>
+                    <div class="detail-field" style="flex-basis: 100%;">
+                        <div class="detail-label">Description</div>
+                    </div>
+                    <div class="description-box">
+                        <div class="description-text">${task.note}</div>
+                    </div>
+                    <div class="detail-field" style="flex-basis: 100%;">
+                        <div class="detail-label">Peer Review Comments</div>
+                    </div>
+                    <div class="description-box" id="peerReviewSection" style="display: none;">
+                        <div id="peerReviewContent" style="max-height: 200px; overflow-y: auto;"></div>
+                    </div>
+                    <div class="description-box" id="noPeerReviewSection" style="display: none;">
+                        <div class="description-text" style="color: #94a3b8;">No peer review comments yet</div>
+                    </div>
+                `;
+            modalOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            renderPeerReviewComments(task.id);
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function renderPeerReviewComments(taskId) {
+            const section = document.getElementById('peerReviewSection');
+            const content = document.getElementById('peerReviewContent');
+            
+            const comments = peerReviewComments.filter(c => c.task_id === taskId);
+            
+            if (comments.length === 0) {
+                content.innerHTML = '<div style="color: #94a3b8; font-size: 0.875rem; padding: 8px 0;">No peer review comments yet</div>';
+            } else {
+                content.innerHTML = comments.map(c => {
+                    const opinionColor = c.metadata?.opinion === 'approve' ? '#10b981' : 
+                                       c.metadata?.opinion === 'request_changes' ? '#f59e0b' : '#64748b';
+                    const opinionLabel = c.metadata?.opinion === 'approve' ? '✓ APPROVED' :
+                                       c.metadata?.opinion === 'request_changes' ? '⚠ CHANGES NEEDED' : '💬 COMMENT';
+                    return '<div style="margin-bottom: 12px; padding: 12px; background: #f8fafc; border-radius: 6px; border-left: 3px solid ' + opinionColor + ';">' +
+                        '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">' +
+                            '<span style="font-weight: 600; font-size: 0.8rem; color: #1e293b;">' + c.from + '</span>' +
+                            '<span style="font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: ' + opinionColor + '20; color: ' + opinionColor + '; font-weight: 600;">' + opinionLabel + '</span>' +
+                        '</div>' +
+                        '<div style="font-size: 0.875rem; color: #475569; margin-bottom: 4px;">' + c.body + '</div>' +
+                        '<div style="font-size: 0.7rem; color: #94a3b8;">' +
+                            (c.metadata?.review_type ? c.metadata.review_type.toUpperCase() + ' • ' : '') +
+                            (c.created_at ? new Date(c.created_at).toLocaleString() : '') +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+            }
+            section.style.display = 'block';
+            
+            content.innerHTML = comments.map(c => {
+                const opinionColor = c.metadata?.opinion === 'approve' ? '#10b981' : 
+                                   c.metadata?.opinion === 'request_changes' ? '#f59e0b' : '#64748b';
+                const opinionLabel = c.metadata?.opinion === 'approve' ? '✓ APPROVED' :
+                                   c.metadata?.opinion === 'request_changes' ? '⚠ CHANGES NEEDED' : '💬 COMMENT';
+                return \`
+                    <div style="margin-bottom: 12px; padding: 12px; background: #f8fafc; border-radius: 6px; border-left: 3px solid \${opinionColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-weight: 600; font-size: 0.8rem; color: #1e293b;">\${c.from}</span>
+                            <span style="font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: \${opinionColor}20; color: \${opinionColor}; font-weight: 600;">\${opinionLabel}</span>
+                        </div>
+                        <div style="font-size: 0.875rem; color: #475569; margin-bottom: 4px;">\${c.body}</div>
+                        <div style="font-size: 0.7rem; color: #94a3b8;">
+                            \${c.metadata?.review_type ? \`\${c.metadata.review_type.toUpperCase()} • \`: ''}
+                            \${c.created_at ? new Date(c.created_at).toLocaleString() : ''}
+                        </div>
+                    </div>
+                \`;
+            }).join('');
+        }
+
+        function renderPeerReviewActivity() {
+            const section = document.getElementById('peerReviewActivity');
+            const list = document.getElementById('peerReviewList');
+            const count = document.getElementById('peerReviewCount');
+            
+            if (peerReviewComments.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            count.textContent = \`\${peerReviewComments.length} comment\${peerReviewComments.length !== 1 ? 's' : ''}\`;
+            
+            const recent = peerReviewComments.slice(-10).reverse();
+            list.innerHTML = recent.map(c => {
+                const opinionColor = c.metadata?.opinion === 'approve' ? '#10b981' : 
+                                   c.metadata?.opinion === 'request_changes' ? '#f59e0b' : '#64748b';
+                const opinionLabel = c.metadata?.opinion === 'approve' ? '✓' :
+                                   c.metadata?.opinion === 'request_changes' ? '⚠' : '💬';
+                return \`<div style="padding: 8px; background: white; border-radius: 6px; margin-bottom: 8px; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600; font-size: 0.75rem; color: #1e293b;">\${c.from}</span>
+                        <span style="font-size: 0.65rem; color: \${opinionColor}; font-weight: 600;">\${opinionLabel} on \${c.metadata?.task_id || 'Task'}</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: #475569; margin-top: 4px;">\${c.body.substring(0, 100)}\${c.body.length > 100 ? '...' : ''}</div>
+                </div>\`;
+            }).join('');
+        }
+        
+
+        // Start
+        init();
+    </script>
+</body>
+</html>

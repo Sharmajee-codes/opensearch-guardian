@@ -1,0 +1,364 @@
+- generic [active] [ref=f10e1]:
+  - banner [ref=f10e2]:
+    - generic [ref=f10e3]:
+      - heading "PMO Status Dashboard" [level=1] [ref=f10e4]
+      - generic [ref=f10e5]:
+        - generic [ref=f10e6]: Live - Implementation Phase Active
+        - generic [ref=f10e8]:
+          - text: "Project:"
+          - strong [ref=f10e9]: OpenSearch Guardian
+        - generic [ref=f10e10]:
+          - text: "Generated:"
+          - strong [ref=f10e11]: 20/08/2026, 00:55:12
+  - generic [ref=f10e12]:
+    - textbox "Search tasks" [ref=f10e14]:
+      - /placeholder: Search tasks by ID, title, assignee...
+    - generic [ref=f10e15]:
+      - generic [ref=f10e16]: Status
+      - combobox "Status" [ref=f10e17] [cursor=pointer]: "0"
+    - generic [ref=f10e18]:
+      - generic [ref=f10e19]: Assignee
+      - combobox "Assignee" [ref=f10e20] [cursor=pointer]:
+        - option "All Assignees" [selected]
+        - option "Andy"
+        - option "Angela"
+        - option "Dwight"
+        - option "Jim"
+        - option "Kelly (PMO)"
+        - option "Kevin"
+        - option "Meredith"
+        - option "Pam"
+        - option "Stanley"
+    - generic [ref=f10e21]:
+      - generic [ref=f10e22]: Workstream
+      - combobox "Workstream" [ref=f10e23] [cursor=pointer]:
+        - option "All Workstreams" [selected]
+        - option "Backend Plugin"
+        - option "Documentation"
+        - option "Frontend Plugin"
+        - option "PMO"
+        - option "Provisioning"
+        - option "Release"
+        - option "Security"
+        - option "Shared Logic"
+        - option "Testing"
+        - option "UI/Visualization"
+    - button "Clear Filters" [ref=f10e24] [cursor=pointer]
+  - main [ref=f10e25]:
+    - generic [ref=f10e26]:
+      - generic [ref=f10e32]:
+        - generic [ref=f10e33]: "17"
+        - generic [ref=f10e34]: Total Tasks
+      - generic [ref=f10e40]:
+        - generic [ref=f10e41]: "17"
+        - generic [ref=f10e42]: In Progress
+      - generic [ref=f10e47]:
+        - generic [ref=f10e48]: "0"
+        - generic [ref=f10e49]: Done
+      - generic [ref=f10e56]:
+        - generic [ref=f10e57]: "0"
+        - generic [ref=f10e58]: Blocked
+    - generic [ref=f10e59]:
+      - generic [ref=f10e60]:
+        - generic [ref=f10e61]: 📚 Documentation Index
+        - text: All project documentation organized by category
+      - generic [ref=f10e62]:
+        - generic [ref=f10e63]:
+          - heading "🏛️ Architecture & ADRs" [level=4] [ref=f10e64]
+          - list [ref=f10e65]:
+            - listitem [ref=f10e66]:
+              - 'link "ADR-001: Project Structure" [ref=f10e67] [cursor=pointer]':
+                - /url: ../adr/ADR-001.md
+            - listitem [ref=f10e68]:
+              - 'link "ADR-002: Technology Stack" [ref=f10e69] [cursor=pointer]':
+                - /url: ../adr/ADR-002.md
+            - listitem [ref=f10e70]:
+              - 'link "ADR-008: Architecture Migration" [ref=f10e71] [cursor=pointer]':
+                - /url: ../adr/ADR-008.md
+            - listitem [ref=f10e72]:
+              - 'link "ADR-009: Plugin Architecture" [ref=f10e73] [cursor=pointer]':
+                - /url: ../adr/ADR-009.md
+            - listitem [ref=f10e74]:
+              - 'link "ADR-011: Release & Distribution" [ref=f10e75] [cursor=pointer]':
+                - /url: ../adr/ADR-011.md
+            - listitem [ref=f10e76]:
+              - link "Desktop Architecture" [ref=f10e77] [cursor=pointer]:
+                - /url: ../architecture/desktop-architecture.md
+            - listitem [ref=f10e78]:
+              - link "Data Model" [ref=f10e79] [cursor=pointer]:
+                - /url: ../architecture/data-model.md
+            - listitem [ref=f10e80]:
+              - link "Doctor Rules Engine" [ref=f10e81] [cursor=pointer]:
+                - /url: ../architecture/doctor-rules.md
+            - listitem [ref=f10e82]:
+              - link "Security & Safety Engine" [ref=f10e83] [cursor=pointer]:
+                - /url: ../architecture/security-safety-engine.md
+            - listitem [ref=f10e84]:
+              - link "Migration Report" [ref=f10e85] [cursor=pointer]:
+                - /url: ../architecture/migration-report.md
+        - generic [ref=f10e86]:
+          - heading "⚙️ Implementation Guides" [level=4] [ref=f10e87]
+          - list [ref=f10e88]:
+            - listitem [ref=f10e89]:
+              - link "Backend Plugin Development Guide" [ref=f10e90] [cursor=pointer]:
+                - /url: ../plugins/backend-plugin-development.md
+            - listitem [ref=f10e91]:
+              - link "Frontend Plugin Research" [ref=f10e92] [cursor=pointer]:
+                - /url: ../research/opensearch-dashboards-plugin.md
+            - listitem [ref=f10e93]:
+              - link "OpenSearch Backend Plugin" [ref=f10e94] [cursor=pointer]:
+                - /url: ../research/opensearch-backend-plugin.md
+            - listitem [ref=f10e95]:
+              - link "Security Integration" [ref=f10e96] [cursor=pointer]:
+                - /url: ../research/opensearch-security-integration.md
+            - listitem [ref=f10e97]:
+              - link "Plugin Packaging & Distribution" [ref=f10e98] [cursor=pointer]:
+                - /url: ../research/plugin-packaging-distribution.md
+        - generic [ref=f10e99]:
+          - heading "🔒 Security & Safety" [level=4] [ref=f10e100]
+          - list [ref=f10e101]:
+            - listitem [ref=f10e102]:
+              - link "Security Engine Architecture" [ref=f10e103] [cursor=pointer]:
+                - /url: ../architecture/security-safety-engine.md
+            - listitem [ref=f10e104]:
+              - link "OpenSearch Security Integration" [ref=f10e105] [cursor=pointer]:
+                - /url: ../research/opensearch-security-integration.md
+            - listitem [ref=f10e106]:
+              - link "Licensing Stack & Compliance" [ref=f10e107] [cursor=pointer]:
+                - /url: ../architecture/research/licensing-stack.md
+        - generic [ref=f10e108]:
+          - heading "🚀 Release & Operations" [level=4] [ref=f10e109]
+          - list [ref=f10e110]:
+            - listitem [ref=f10e111]:
+              - link "Release Hardening Guide" [ref=f10e112] [cursor=pointer]:
+                - /url: ../operations/release.md
+            - listitem [ref=f10e113]:
+              - link "Versioning Strategy" [ref=f10e114] [cursor=pointer]:
+                - /url: ../operations/versioning.md
+            - listitem [ref=f10e115]:
+              - link "Doctor Runbook" [ref=f10e116] [cursor=pointer]:
+                - /url: ../operations/doctor-runbook.md
+            - listitem [ref=f10e117]:
+              - link "Acceptance Criteria" [ref=f10e118] [cursor=pointer]:
+                - /url: ../operations/acceptance-criteria.md
+            - listitem [ref=f10e119]:
+              - link "Admin Guide" [ref=f10e120] [cursor=pointer]:
+                - /url: ../operations/admin-guide.md
+            - listitem [ref=f10e121]:
+              - link "User Guide" [ref=f10e122] [cursor=pointer]:
+                - /url: ../operations/user-guide.md
+            - listitem [ref=f10e123]:
+              - link "Quickstart Guide" [ref=f10e124] [cursor=pointer]:
+                - /url: ../operations/quickstart.md
+            - listitem [ref=f10e125]:
+              - link "API Documentation" [ref=f10e126] [cursor=pointer]:
+                - /url: ../API.md
+        - generic [ref=f10e127]:
+          - heading "📋 PMO & Process" [level=4] [ref=f10e128]
+          - list [ref=f10e129]:
+            - listitem [ref=f10e130]:
+              - link "PMO Process" [ref=f10e131] [cursor=pointer]:
+                - /url: ../operations/pmo-process.md
+            - listitem [ref=f10e132]:
+              - link "Roadmap" [ref=f10e133] [cursor=pointer]:
+                - /url: ../operations/roadmap.md
+            - listitem [ref=f10e134]:
+              - link "Standard Operating Procedures" [ref=f10e135] [cursor=pointer]:
+                - /url: ../SOP.md
+            - listitem [ref=f10e136]:
+              - link "Project Vision" [ref=f10e137] [cursor=pointer]:
+                - /url: ../VISION.md
+            - listitem [ref=f10e138]:
+              - link "Full Documentation Index" [ref=f10e139] [cursor=pointer]:
+                - /url: documentation-index.md
+    - generic [ref=f10e140]:
+      - generic [ref=f10e141]:
+        - generic [ref=f10e142]:
+          - generic [ref=f10e143]: Not Started
+          - generic [ref=f10e146]: "0"
+        - generic [ref=f10e147]: No tasks
+      - generic [ref=f10e149]:
+        - generic [ref=f10e150]:
+          - generic [ref=f10e151]: In Progress
+          - generic [ref=f10e154]: "17"
+        - generic [ref=f10e155]:
+          - generic [ref=f10e156]: No tasks
+          - generic [ref=f10e157] [cursor=pointer]:
+            - generic [ref=f10e158]:
+              - generic [ref=f10e159]: T58
+              - generic [ref=f10e160]: IN PROGRESS
+            - generic [ref=f10e161]: "PMO: Weekly Status Report Consolidation"
+            - generic [ref=f10e162]:
+              - generic [ref=f10e163]: Kelly (PMO)
+              - generic [ref=f10e164]: god
+              - generic [ref=f10e165]: 📊 PMO
+          - generic [ref=f10e166] [cursor=pointer]:
+            - generic [ref=f10e167]:
+              - generic [ref=f10e168]: T59
+              - generic [ref=f10e169]: IN PROGRESS
+            - generic [ref=f10e170]: Backend Plugin SPI Implementation
+            - generic [ref=f10e171]:
+              - generic [ref=f10e172]: Kevin
+              - generic [ref=f10e173]: Phyllis
+              - generic [ref=f10e174]: ↳ T52
+              - generic [ref=f10e175]: ⚙️ Backend Plugin
+          - generic [ref=f10e176] [cursor=pointer]:
+            - generic [ref=f10e177]:
+              - generic [ref=f10e178]: T60
+              - generic [ref=f10e179]: IN PROGRESS
+            - generic [ref=f10e180]: Backend Plugin Collection Services
+            - generic [ref=f10e181]:
+              - generic [ref=f10e182]: Kevin
+              - generic [ref=f10e183]: Phyllis
+              - generic [ref=f10e184]: ↳ T59
+              - generic [ref=f10e185]: ⚙️ Backend Plugin
+          - generic [ref=f10e186] [cursor=pointer]:
+            - generic [ref=f10e187]:
+              - generic [ref=f10e188]: T61
+              - generic [ref=f10e189]: IN PROGRESS
+            - generic [ref=f10e190]: Security Plugin Integration
+            - generic [ref=f10e191]:
+              - generic [ref=f10e192]: Angela
+              - generic [ref=f10e193]: Phyllis
+              - generic [ref=f10e194]: ↳ T52
+              - generic [ref=f10e195]: 🔒 Security
+          - generic [ref=f10e196] [cursor=pointer]:
+            - generic [ref=f10e197]:
+              - generic [ref=f10e198]: T62
+              - generic [ref=f10e199]: IN PROGRESS
+            - generic [ref=f10e200]: RBAC Mapping and Permission Enforcement
+            - generic [ref=f10e201]:
+              - generic [ref=f10e202]: Angela
+              - generic [ref=f10e203]: Phyllis
+              - generic [ref=f10e204]: ↳ T61
+              - generic [ref=f10e205]: 🔒 Security
+          - generic [ref=f10e206] [cursor=pointer]:
+            - generic [ref=f10e207]:
+              - generic [ref=f10e208]: T63
+              - generic [ref=f10e209]: IN PROGRESS
+            - generic [ref=f10e210]: Plugin Development Guides
+            - generic [ref=f10e211]:
+              - generic [ref=f10e212]: Pam
+              - generic [ref=f10e213]: Phyllis
+              - generic [ref=f10e214]: ↳ T52
+              - generic [ref=f10e215]: 📚 Documentation
+          - generic [ref=f10e216] [cursor=pointer]:
+            - generic [ref=f10e217]:
+              - generic [ref=f10e218]: T64
+              - generic [ref=f10e219]: IN PROGRESS
+            - generic [ref=f10e220]: Release Automation and Signing
+            - generic [ref=f10e221]:
+              - generic [ref=f10e222]: Pam
+              - generic [ref=f10e223]: Phyllis
+              - generic [ref=f10e224]: ↳ T63
+              - generic [ref=f10e225]: 🚀 Release
+          - generic [ref=f10e226] [cursor=pointer]:
+            - generic [ref=f10e227]:
+              - generic [ref=f10e228]: T65
+              - generic [ref=f10e229]: IN PROGRESS
+            - generic [ref=f10e230]: Provisioning Engine Plugin Adaptation
+            - generic [ref=f10e231]:
+              - generic [ref=f10e232]: Dwight
+              - generic [ref=f10e233]: Phyllis
+              - generic [ref=f10e234]: ↳ T52
+              - generic [ref=f10e235]: 🐳 Provisioning
+          - generic [ref=f10e236] [cursor=pointer]:
+            - generic [ref=f10e237]:
+              - generic [ref=f10e238]: T66
+              - generic [ref=f10e239]: IN PROGRESS
+            - generic [ref=f10e240]: Doctor Rules Plugin Integration
+            - generic [ref=f10e241]:
+              - generic [ref=f10e242]: Dwight
+              - generic [ref=f10e243]: Phyllis
+              - generic [ref=f10e244]: ↳ T65
+              - generic [ref=f10e245]: 🐳 Provisioning
+          - generic [ref=f10e246] [cursor=pointer]:
+            - generic [ref=f10e247]:
+              - generic [ref=f10e248]: T67
+              - generic [ref=f10e249]: IN PROGRESS
+            - generic [ref=f10e250]: Frontend Plugin Scaffold and Manifest
+            - generic [ref=f10e251]:
+              - generic [ref=f10e252]: Meredith
+              - generic [ref=f10e253]: Phyllis
+              - generic [ref=f10e254]: ↳ T52
+              - generic [ref=f10e255]: 🖥️ Frontend Plugin
+          - generic [ref=f10e256] [cursor=pointer]:
+            - generic [ref=f10e257]:
+              - generic [ref=f10e258]: T68
+              - generic [ref=f10e259]: IN PROGRESS
+            - generic [ref=f10e260]: Frontend-Backend Communication
+            - generic [ref=f10e261]:
+              - generic [ref=f10e262]: Meredith
+              - generic [ref=f10e263]: Phyllis
+              - generic [ref=f10e264]: ↳ T67, T59
+              - generic [ref=f10e265]: 🖥️ Frontend Plugin
+          - generic [ref=f10e266] [cursor=pointer]:
+            - generic [ref=f10e267]:
+              - generic [ref=f10e268]: T69
+              - generic [ref=f10e269]: IN PROGRESS
+            - generic [ref=f10e270]: Backend Plugin Unit Test Strategy
+            - generic [ref=f10e271]:
+              - generic [ref=f10e272]: Jim
+              - generic [ref=f10e273]: Phyllis
+              - generic [ref=f10e274]: ↳ T59
+              - generic [ref=f10e275]: 🧪 Testing
+          - generic [ref=f10e276] [cursor=pointer]:
+            - generic [ref=f10e277]:
+              - generic [ref=f10e278]: T70
+              - generic [ref=f10e279]: IN PROGRESS
+            - generic [ref=f10e280]: Frontend Plugin Integration Tests
+            - generic [ref=f10e281]:
+              - generic [ref=f10e282]: Jim
+              - generic [ref=f10e283]: Phyllis
+              - generic [ref=f10e284]: ↳ T67
+              - generic [ref=f10e285]: 🧪 Testing
+          - generic [ref=f10e286] [cursor=pointer]:
+            - generic [ref=f10e287]:
+              - generic [ref=f10e288]: T71
+              - generic [ref=f10e289]: IN PROGRESS
+            - generic [ref=f10e290]: Optimizer and Capacity Logic Validation
+            - generic [ref=f10e291]:
+              - generic [ref=f10e292]: Stanley
+              - generic [ref=f10e293]: Phyllis
+              - generic [ref=f10e294]: ↳ T52
+              - generic [ref=f10e295]: 🔬 Shared Logic
+          - generic [ref=f10e296] [cursor=pointer]:
+            - generic [ref=f10e297]:
+              - generic [ref=f10e298]: T72
+              - generic [ref=f10e299]: IN PROGRESS
+            - generic [ref=f10e300]: Safety Classification Validation
+            - generic [ref=f10e301]:
+              - generic [ref=f10e302]: Stanley
+              - generic [ref=f10e303]: Phyllis
+              - generic [ref=f10e304]: ↳ T71
+              - generic [ref=f10e305]: 🔬 Shared Logic
+          - generic [ref=f10e306] [cursor=pointer]:
+            - generic [ref=f10e307]:
+              - generic [ref=f10e308]: T73
+              - generic [ref=f10e309]: IN PROGRESS
+            - generic [ref=f10e310]: UI Component Implementation
+            - generic [ref=f10e311]:
+              - generic [ref=f10e312]: Andy
+              - generic [ref=f10e313]: Phyllis
+              - generic [ref=f10e314]: ↳ T67
+              - generic [ref=f10e315]: 📈 UI/Visualization
+          - generic [ref=f10e316] [cursor=pointer]:
+            - generic [ref=f10e317]:
+              - generic [ref=f10e318]: T74
+              - generic [ref=f10e319]: IN PROGRESS
+            - generic [ref=f10e320]: Visualization Integration
+            - generic [ref=f10e321]:
+              - generic [ref=f10e322]: Andy
+              - generic [ref=f10e323]: Phyllis
+              - generic [ref=f10e324]: ↳ T73
+              - generic [ref=f10e325]: 📈 UI/Visualization
+      - generic [ref=f10e326]:
+        - generic [ref=f10e327]:
+          - generic [ref=f10e328]: In Review
+          - generic [ref=f10e332]: "0"
+        - generic [ref=f10e333]: No tasks
+      - generic [ref=f10e335]:
+        - generic [ref=f10e336]:
+          - generic [ref=f10e337]: Done
+          - generic [ref=f10e340]: "0"
+        - generic [ref=f10e341]: No tasks

@@ -63,7 +63,7 @@ class OsSnapshot(BaseModel):
     mem_free_bytes: int
     mem_free_percent: int
     mem_used_percent: int
-    cgroup_cpu_percent: Optional[float] = None
+    cgroup_cpu_percent: float | None = None
 
 
 class ProcessSnapshot(BaseModel):
@@ -110,8 +110,8 @@ class NodeSnapshot(BaseModel):
     thread_pools: dict[str, ThreadPoolSnapshot]
     filesystems: list[FilesystemSnapshot]
 
-    indices_doc_count: Optional[int] = None
-    indices_store_size_bytes: Optional[int] = None
+    indices_doc_count: int | None = None
+    indices_store_size_bytes: int | None = None
 
     source_api: str = "_nodes/stats"
     source_version: str = ""
@@ -122,22 +122,22 @@ class ShardState(BaseModel):
     shard_id: str
     index_name: str
     primary: bool
-    node_id: Optional[str] = None
-    node_name: Optional[str] = None
+    node_id: str | None = None
+    node_name: str | None = None
     state: str  # "STARTED" | "INITIALIZING" | "RELOCATING" | "UNASSIGNED"
-    relocation_status: Optional[str] = None
-    primary_node_id: Optional[str] = None
-    replica_node_id: Optional[str] = None
+    relocation_status: str | None = None
+    primary_node_id: str | None = None
+    replica_node_id: str | None = None
 
-    store_size_bytes: Optional[int] = None
-    primary_size_bytes: Optional[int] = None
-    doc_count: Optional[int] = None
+    store_size_bytes: int | None = None
+    primary_size_bytes: int | None = None
+    doc_count: int | None = None
 
-    recovery_source_node: Optional[str] = None
-    recovery_target_node: Optional[str] = None
-    recovery_progress_percent: Optional[float] = None
+    recovery_source_node: str | None = None
+    recovery_target_node: str | None = None
+    recovery_progress_percent: float | None = None
 
-    allocation_explanation: Optional[str] = None
+    allocation_explanation: str | None = None
 
     collected_at: datetime
 
@@ -167,7 +167,7 @@ class IndexSnapshot(BaseModel):
 
     refresh_interval_ms: int
     codec: str
-    lifecycle_policy: Optional[str] = None
+    lifecycle_policy: str | None = None
     read_only: bool
     read_only_allow_delete: bool
 
@@ -180,7 +180,7 @@ class IndexSnapshot(BaseModel):
 
 
 class CollectionResult(BaseModel):
-    cluster_snapshot: Optional[ClusterSnapshot] = None
+    cluster_snapshot: ClusterSnapshot | None = None
     node_snapshots: dict[str, NodeSnapshot] = Field(default_factory=dict)
     index_snapshots: dict[str, IndexSnapshot] = Field(default_factory=dict)
     shard_states: list[ShardState] = Field(default_factory=list)

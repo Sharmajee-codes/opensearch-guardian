@@ -1,0 +1,30 @@
+# Global code owners for OpenSearch Guardian
+# See https://docs.github.com/en/repositories/merging-changes-in-a-repository/defining-the-mergeability-of-pull-requests/about-code-owners
+
+# Default owners for everything
+*                       @sharmajee
+
+# Backend plugin
+/backend/**             @sharmajee @opensearch-guardian/backend
+
+# Frontend plugin
+/frontend/**            @sharmajee @opensearch-guardian/frontend
+
+# CI/CD workflows
+/.github/workflows/**   @sharmajee @opensearch-guardian/devops
+
+# Documentation
+/docs/**                @sharmajee @opensearch-guardian/docs
+
+# Security-sensitive files
+/guardian/security/**   @sharmajee @opensearch-guardian/security
+guardian/security/**
+*.policy
+*security*.yml
+*roles*.yml
+
+# Dependency manifests
+pyproject.toml          @sharmajee @opensearch-guardian/devops
+uv.lock                 @sharmajee @opensearch-guardian/devops
+package.json            @sharmajee @opensearch-guardian/frontend
+package-lock.json       @sharmajee @opensearch-guardian/frontend

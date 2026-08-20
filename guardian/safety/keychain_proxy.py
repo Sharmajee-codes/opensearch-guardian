@@ -7,7 +7,6 @@ Supports macOS Keychain, Windows Credential Vault, and Linux Secret Service.
 import os
 import platform
 import threading
-from typing import Dict, Optional, List
 from dataclasses import dataclass
 from enum import Enum
 
@@ -39,8 +38,8 @@ class KeychainProxy:
     def __init__(self):
         self._backend = self._detect_backend()
         self._lock = threading.RLock()
-        self._cache: Dict[str, Dict[str, str]] = {}  # service -> {account: secret}
-        self._injected_secrets: Dict[str, Dict[str, str]] = {}  # For testing
+        self._cache: dict[str, dict[str, str]] = {}  # service -> {account: secret}
+        self._injected_secrets: dict[str, dict[str, str]] = {}  # For testing
 
     def _detect_backend(self) -> KeychainBackend:
         """Detect the appropriate keychain backend for the OS."""
@@ -358,7 +357,7 @@ class KeychainProxy:
         except subprocess.CalledProcessError:
             return False
 
-    def clear_cache(self, service: Optional[str] = None, account: Optional[str] = None):
+    def clear_cache(self, service: str | None = None, account: str | None = None):
         """
         Clear cached secrets.
 
@@ -371,14 +370,23 @@ class KeychainProxy:
                 cache_key = f"{service}:{account}"
                 if cache_key in self._cache:
                     del self._cache[cache_key]
+                # Also clear injected secrets for this service/account
+                if service in self._injected_secrets and account in self._injected_secrets[service]:
+                    del self._injected_secrets[service][account]
+                    if not self._injected_secrets[service]:
+                        del self._injected_secrets[service]
             elif service:
                 keys_to_remove = [
                     k for k in self._cache.keys() if k.startswith(f"{service}:")
                 ]
                 for key in keys_to_remove:
                     del self._cache[key]
+                # Also clear injected secrets for this service
+                if service in self._injected_secrets:
+                    del self._injected_secrets[service]
             else:
                 self._cache.clear()
+                self._injected_secrets.clear()
 
     def inject_secret(self, service: str, account: str, secret: str):
         """

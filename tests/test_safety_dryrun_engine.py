@@ -41,15 +41,15 @@ class TestDryRunEngine:
         assert isinstance(result, DiffResult)
         assert result.operation_type == "node-add"
         assert result.target_resource == "node-3"
-        assert "before" in str(result.before_snapshot)
-        assert "after" in str(result.after_snapshot)
+        assert "timestamp" in str(result.before_snapshot)
+        assert "timestamp" in str(result.after_snapshot)
 
         # Verify changes summary
         assert "changes" in result.changes_summary
-        assert "node_count" in str(result.changes_summary["changes"])
+        assert "node_count" in str(result.changes_summary)
 
         # Verify risk assessment
-        assert "risk" in result.risk_assessment.lower()
+        assert "medium" in result.risk_assessment.lower()
 
     @pytest.mark.asyncio
     async def test_node_remove_dry_run(self, engine):

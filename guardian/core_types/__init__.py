@@ -1,16 +1,16 @@
 """Core type definitions shared across guardian packages."""
 
+from .auth_models import (
+    BasicCredentials,
+    ClientCertCredentials,
+    Credentials,
+)
 from .connection_models import (
     AuthMethod,
     ConnectionMode,
     ConnectionProfile,
     ConnectionStatus,
     ConnectionTestResult,
-)
-from .auth_models import (
-    BasicCredentials,
-    ClientCertCredentials,
-    Credentials,
 )
 
 __all__ = [
