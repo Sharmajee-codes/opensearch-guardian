@@ -306,6 +306,7 @@ class RuleBasedPlanner:
                 capacity_recovery=capacity_recovery,
                 mapping_opt=mapping_opt,
                 optimizer_excerpt=optimizer_excerpt,
+                reclaimable=reclaimable,
             )
             if action:
                 matched.append(action)
@@ -327,6 +328,7 @@ class RuleBasedPlanner:
         capacity_recovery: list[dict[str, Any]],
         mapping_opt: list[dict[str, Any]],
         optimizer_excerpt: dict[str, Any],
+        reclaimable: list[dict[str, Any]],
     ) -> PlannedAction | None:
         """Match a single rule against computed values."""
         if rule.name == "critical_capacity":
@@ -479,6 +481,21 @@ class RuleBasedPlanner:
                     estimated_impact="Improve query performance via mapping optimization",
                     confidence=0.65,
                 )
+
+        # Default: no_action rule (always matches if no other rule matched)
+        elif rule.name == "no_action":
+            return PlannedAction(
+                action=rule.action,
+                summary="No optimization actions required — cluster is operating normally",
+                rationale=[
+                    "All capacity, storage, and performance metrics within acceptable ranges",
+                    "No immediate action required; continue monitoring",
+                ],
+                safety_tier="INFORMATIONAL",
+                priority=rule.priority,
+                estimated_impact="None",
+                confidence=1.0,
+            )
 
         return None
 

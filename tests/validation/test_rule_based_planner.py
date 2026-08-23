@@ -48,9 +48,11 @@ def test_rule_based_planner_initialization():
 
 def test_rule_based_planner_with_config():
     """Test RuleBasedPlanner initialization with custom configs."""
+    from guardian.planner.planner import GrowthRate
+
     config = ProjectionConfig(
         default_window=ProjectionWindow.ONE_MONTH,
-        growth_method="exponential",
+        growth_method=GrowthRate.EXPONENTIAL,
         min_history_points=5,
     )
     optimizer_config = OptimizerConfig()
@@ -61,7 +63,7 @@ def test_rule_based_planner_with_config():
     )
 
     assert planner.config.default_window == ProjectionWindow.ONE_MONTH
-    assert planner.config.growth_method.value == "exponential"
+    assert planner.config.growth_method == GrowthRate.EXPONENTIAL
     assert planner.config.min_history_points == 5
 
 
@@ -225,33 +227,61 @@ def test_rule_based_plan_highest_priority_action():
     assert empty_plan.highest_priority_action() is None
 
 
-def test_create_mock_snapshot():
+def create_mock_snapshot() -> CollectionResult:
     """Helper to create a mock CollectionResult for testing."""
     # Create a basic node snapshot
     node_snapshot = NodeSnapshot(
+        node_id="test-node-1",
+        node_name="test-node-1",
         host="test-node-1",
         ip="192.168.1.100",
-        name="test-node-1",
-        os=OSStats(
-            cpu_percent=65.0,
-            mem_total_bytes=32 * (1024 ** 3),
-            mem_free_bytes=16 * (1024 ** 3),
-            swap_total_bytes=0,
-            swap_free_bytes=0,
-        ),
-        jvm=JVMStats(
+        roles=["data", "master"],
+        version="2.0.0",
+        collected_at=datetime.now(UTC),
+        jvm=JvmSnapshot(
             mem_heap_used_bytes=8 * (1024 ** 3),
             mem_heap_max_bytes=16 * (1024 ** 3),
-            mem_heap_used_percent=50.0,
+            mem_heap_used_percent=50,
+            mem_non_heap_used_bytes=512 * (1024 ** 2),
+            gc_collectors_young_count=0,
+            gc_collectors_young_time_ms=0,
+            gc_collectors_old_count=0,
+            gc_collectors_old_time_ms=0,
+            buffer_pools_direct_count=0,
+            buffer_pools_direct_used_bytes=0,
+            buffer_pools_mapped_count=0,
+            buffer_pools_mapped_used_bytes=0,
             uptime_ms=86400000,
         ),
+        os=OsSnapshot(
+            cpu_percent=65.0,
+            load_average_1m=1.0,
+            load_average_5m=1.0,
+            load_average_15m=1.0,
+            mem_total_bytes=32 * (1024 ** 3),
+            mem_used_bytes=16 * (1024 ** 3),
+            mem_free_bytes=16 * (1024 ** 3),
+            mem_free_percent=50,
+            mem_used_percent=50,
+        ),
+        process=ProcessSnapshot(
+            cpu_percent=30.0,
+            cpu_total_ms=10000,
+            open_file_descriptors=100,
+            max_file_descriptors=1000,
+            mem_swap_used_bytes=0,
+            mem_swap_max_bytes=0,
+        ),
+        thread_pools={},
         filesystems=[
-            FilesystemStats(
-                dev="/dev/sda1",
-                path="/",
-                type="ext4",
-                available_bytes=500 * (1024 ** 3),
+            FilesystemSnapshot(
                 total_bytes=1000 * (1024 ** 3),
+                available_bytes=500 * (1024 ** 3),
+                used_bytes=500 * (1024 ** 3),
+                available_percent=50.0,
+                disk_reads=100,
+                disk_writes=50,
+                disk_total_size_bytes=1000 * (1024 ** 3),
             )
         ],
     )
@@ -259,42 +289,55 @@ def test_create_mock_snapshot():
     # Create index snapshots
     index_snapshots = {
         "test-index-1": IndexSnapshot(
-            name="test-index-1",
-            state="open",
-            store_size_bytes=100 * (1024 ** 3),  # 100 GB
-            indexing_index_total=1000000,
-            indexing_index_time_in_millis=50000,
-            search_query_total=500000,
-            search_query_time_in_millis=25000,
-            docs_count=500000,
-            docs_deleted=5000,
-            version="1.0",
+            index_name="test-index-1",
+            uuid="test-uuid-1",
+            collected_at=datetime.now(UTC),
+            doc_count=500000,
+            deleted_doc_count=5000,
+            store_size_bytes=100 * (1024 ** 3),
             primary_size_bytes=50 * (1024 ** 3),
-            replica_size_bytes=50 * (1024 ** 3),
-            shards_total=5,
-            shards_primaries=3,
-            shards_replicas=2,
+            number_of_shards=3,
+            number_of_replicas=1,
+            total_shards=5,
+            search_query_total=500000,
+            search_query_time_ms=25000,
+            indexing_index_total=1000000,
+            indexing_index_time_ms=50000,
+            segment_count=10,
+            segment_memory_bytes=1024 * 1024,
+            refresh_interval_ms=1000,
+            codec="lucene90",
+            read_only=False,
+            read_only_allow_delete=False,
+            field_count=20,
+            has_keyword_explosion=False,
+            source_api="_stats",
+            source_version="1.0",
+            raw_response_hash="abc123",
         )
     }
 
     # Create cluster snapshot
     cluster_snapshot = ClusterSnapshot(
+        snapshot_id="test-snap-1",
         cluster_name="test-cluster",
-        cluster_uuid="test-uuid",
-        timestamp=int(datetime.now(UTC).timestamp() * 1000),
-        status="green",
-        number_of_nodes=1,
-        number_of_data_nodes=1,
+        collected_at=datetime.now(UTC),
+        health_status="green",
+        total_nodes=1,
+        data_nodes=1,
+        master_nodes=1,
+        ingest_nodes=0,
         active_primary_shards=3,
         active_shards=5,
         relocating_shards=0,
         initializing_shards=0,
         unassigned_shards=0,
         delayed_unassigned_shards=0,
-        number_of_pending_tasks=0,
-        number_of_in_fetch=0,
-        task_max_waiting_in_queue_millis=0,
-        active_shards_percent_as_number=100.0,
+        pending_cluster_tasks=0,
+        failed_cluster_tasks=0,
+        source_api="_cluster/health",
+        source_version="1.0",
+        raw_response_hash="abc123",
     )
 
     # Create collection result
@@ -302,6 +345,9 @@ def test_create_mock_snapshot():
         node_snapshots={"test-node-1": node_snapshot},
         index_snapshots=index_snapshots,
         cluster_snapshot=cluster_snapshot,
+        shard_states=[],
+        collected_at=datetime.now(UTC),
+        errors=[],
     )
 
 
@@ -326,6 +372,12 @@ def test_rule_based_planner_basic_plan():
     assert isinstance(plan.sizing_recommendation, dict)
     assert isinstance(plan.optimizer_excerpt, dict)
     assert isinstance(plan.generated_at, datetime)
+
+    # Additional assertions to verify plan content
+    assert len(plan.actions) >= 0  # Actions may be empty if no issues detected
+    assert len(plan.capacity_projections) > 0  # Should have capacity projections
+    assert "recommended_node_count" in plan.sizing_recommendation  # Should have node count recommendation
+    assert "reclaimable_storage" in plan.optimizer_excerpt  # Should have optimizer findings
 
 
 def test_rule_evaluation_critical_capacity():
@@ -380,6 +432,11 @@ def test_rule_evaluation_critical_capacity():
     assert len(critical_actions) >= 1
     assert critical_actions[0].safety_tier == "APPROVAL_REQUIRED"
     assert "Critical" in critical_actions[0].summary
+
+    # Additional assertions to verify specific action details
+    assert critical_actions[0].priority == 1  # Should have highest priority for critical capacity
+    assert "Scale from 5 to 8 nodes" in critical_actions[0].estimated_impact  # Should show correct node scaling
+    assert critical_actions[0].confidence == 0.75  # Should match sizing confidence
 
 
 def test_rule_evaluation_reclaim_storage():
@@ -438,6 +495,11 @@ def test_rule_evaluation_reclaim_storage():
     assert len(reclaim_actions) >= 1
     assert reclaim_actions[0].safety_tier == "SAFE_REVERSIBLE"
     assert "reclaimable storage" in reclaim_actions[0].summary.lower()
+
+    # Additional assertions to verify specific action details
+    assert reclaim_actions[0].priority == 15  # Should have correct priority for reclaim storage
+    assert "Potential 30.0% storage recovery" in reclaim_actions[0].estimated_impact  # Should show correct recovery percentage
+    assert reclaim_actions[0].confidence == 0.8  # Should have correct confidence level
 
 
 def test_deduplicate_actions():
